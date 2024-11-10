@@ -7,7 +7,7 @@
 3. subtract start position from the sum until its good (binary search?)
 4. return values
 */
-
+const int MAX = 100000;
 
 typedef struct 
 {
@@ -59,15 +59,17 @@ void sort_array(Truck array[], int size)
 {
     qsort(array, size, sizeof(array[0]), compare);
 }
-/*
+
 int bin_search(Truck array[], int size, int value)
 {
-    int index;
+    int index = -1;
     int lower = 0;
-    int upper = size;
+    int upper = size-1;
     while (lower <= upper)
     {
         int mid = lower + (upper - lower) /2;
+        if (mid >= MAX) printf("pretiekol som\n");
+        //printf("%d %d\n", size, mid);
         if (array[mid].start <= value)
         {
             index = mid;
@@ -79,14 +81,13 @@ int bin_search(Truck array[], int size, int value)
     }
     return index;
 }
-*/
+
 
 
 int main()
 {
     //initializing
-    const int MAX = 100000;
-    Truck array[100000] = {make_truck(0, 0, 0, 0)};
+    Truck array[MAX] = {make_truck(0, 0, 0, 0)};
     Truck current;
     Order current_input;
     char bracket;
@@ -100,8 +101,10 @@ int main()
         return 1;
     }
     //inputing trucks
-    while (scanf(" [ %d - %d , %d , %d ] ", &current.start, &current.end, &current.capacity, &current.cost) == 4)
+    int input_active = 1;
+    while (input_active)
     {
+        if (scanf(" [ %d - %d , %d , %d ] ", &current.start, &current.end, &current.capacity, &current.cost) != 4) goto fail;
         if (validate_truck(current))
         {
             array[count] = current;
@@ -109,25 +112,28 @@ int main()
             count ++;
         } else goto fail;
         //breaking points
-        if (count > MAX) goto fail;
+        if (count >= MAX) goto fail;
         if (scanf(" %c", &bracket) == 1 && bracket == ',') continue;
         else if (bracket == '}') break;
         else goto fail;
     }
-    //print_trucks(array, MAX);
     //printf("-------------------------------------------------------------\n");
     sort_array(array, MAX);
-    //print_trucks(array, MAX);
-    //printf("%d\n", count);
     //inputing what we want to calculate
-    //index = bin_search(array, MAX, 17);
-    //printf("%d\n", index);
     printf("Naklad:\n");
+    int end;
     while(!feof(stdin))
     {
-        //printf("-----------------------------------------------\n");
-        if (scanf("%d %d", &current_input.start, &current_input.amount) != 2 && !feof(stdin)) goto fail;
-        if(feof(stdin)) continue;
+        if ((end=scanf("%d %d", &current_input.start, &current_input.amount)) != 2)
+        {
+            if (end != EOF)
+            {
+                goto fail;
+            } else
+            {
+                continue;
+            }
+        }
         if (current_input.start < 0 || current_input.amount <= 0) goto fail;
         int day = current_input.start;
         int total_cost = 0;
@@ -136,7 +142,8 @@ int main()
         while (active)
         {
             //printf("den %d\n", day);
-            for (int i = 0; i < MAX; i++)
+            int index = bin_search(array, MAX, day);
+            for (int i = 0; i <= index; i++)
             {
                 if (day >= array[i].start && day <= array[i].end)
                 {
@@ -158,7 +165,10 @@ int main()
             day ++;
 
         }
-
+        if(feof(stdin))
+        {
+            break;
+        }
     }
     
     return 0;
