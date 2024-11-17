@@ -68,6 +68,7 @@ int main()
         if (action == '+')
         {
             if (scanf("%d", &value) != 1) goto fail;
+            if (value < 0) goto fail;
             append(&array, &length, make_day(value, count));
             //print_array(array, length);
             count++;
@@ -75,7 +76,7 @@ int main()
         } else if(action == '?')
         {
             if (scanf("%d %d", &start, &end) != 2) goto fail;
-            if (start > count -1 || end > count -1) goto fail;
+            if (start > count -1 || end > count -1 || start > end || start < 0 || end < 0) goto fail;
             //qsort(array, length, sizeof(day), compare);
             //print_array(array, length);
             //int found_upper = 0;
