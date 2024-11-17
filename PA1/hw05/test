@@ -1,0 +1,4 @@
+#!/bin/bash
+for file in CZE/*_in.txt; do
+    ./a.out < "$file" | diff - "${file/_in.txt/_out.txt}"
+done
