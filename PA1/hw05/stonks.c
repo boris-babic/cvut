@@ -39,6 +39,24 @@ int compare(const void* a, const void* b) {
    return (*(int*)a - *(int*)b);
 }
 
+day * cut_array(day array[], int start, int end)
+{
+    day * result = (day *)calloc(end - start+1, sizeof(day));
+    for (int i= start; i <= end; i++)
+    {
+        result[i-start] = array[i];
+    }
+    return result;
+}
+
+void print_results (int min, int max, int begin_max, int end_max, int begin_min, int end_min)
+{
+    if (max == 0) printf("Nejvyssi zisk: N/A\n");
+    else printf("Nejvyssi zisk: %d (%d - %d)\n", max, begin_max, end_max);
+    if (min == 0) printf("Nejvyssi ztrata: N/A\n");
+    else printf("Nejvyssi ztrata: %d (%d - %d)\n", -min, begin_min, end_min);
+}
+
 int main()
 {
     char action;
@@ -63,6 +81,7 @@ int main()
             if (feof(stdin)) break;
             fail:
             printf("Nespravny vstup.\n");
+            free(array);
             return 1;
         }
         if (action == '+')
@@ -77,63 +96,39 @@ int main()
         {
             if (scanf("%d %d", &start, &end) != 2) goto fail;
             if (start > count -1 || end > count -1 || start > end || start < 0 || end < 0) goto fail;
-            //qsort(array, length, sizeof(day), compare);
-            //print_array(array, length);
-            //int found_upper = 0;
-            //int found_lower = 0;
-            //int lower, upper;
-            int min = 0;
-            int max = 0;
-            int current;
-            int begin_max = 0;
-            int begin_min = 0;
-            int end_max = 0;
-            int end_min = 0;
-            for (int i = start; i <= end; i++)
+            if (start == end) print_results(0,0,0,0,0,0);
+            else
             {
-                for (int j = i; j <= end; j++)
+                day max_value= array[start];
+                day min_value= array[start];
+                int max = 0, min = 0, max_start = 0, max_end = 0, min_start = 0, min_end = 0;
+                for(int i = start+1; i <=end; i++)
                 {
-                    
-                    current = array[j].value - array[i].value;
-                    if (current > max) 
+                    //max part
+                    if (array[i].value -min_value.value > max)
                     {
-                        begin_max = array[i].day;
-                        end_max = array[j].day;
-                        max = current;
-                    }
-                    else if (current < min)
+                        max = array[i].value -min_value.value;
+                        max_start = min_value.day;
+                        max_end = array[i].day;
+                    } //moves the start of calculations 
+                    if (array[i].value < min_value.value) min_value = array[i];
+                    //min part
+                    if(array[i].value - max_value.value < min)
                     {
-                        begin_min = array[i].day;
-                        end_min = array[j].day;
-                        min = current;
-                    }
-                    //printf("%d %d: %d %d %d\n", i, j, current, min, max);
-
+                        min = array[i].value - max_value.value;
+                        min_start = max_value.day;
+                        min_end = array[i].day;
+                    } //moves the start of calculations 
+                    if (array[i].value > max_value.value) max_value = array[i];
                 }
+                print_results(min, max, max_start, max_end, min_start, min_end);
             }
-            if (max == 0) printf("Nejvyssi zisk: N/A\n");
-            else printf("Nejvyssi zisk: %d (%d - %d)\n", max, begin_max, end_max);
-            if (min == 0) printf("Nejvyssi ztrata: N/A\n");
-            else printf("Nejvyssi ztrata: %d (%d - %d)\n", -min, begin_min, end_min);
         } else
         {
             goto fail;
         }
         
     }
+    free(array);
     return 0;
 }
-
-
-/*                //finding extreme
-                if (array[i].day >= start && array[i].day <= end && array[i].value > 0 && found_lower == 0)
-                {
-                    lower = array[i].value;
-                    printf("%d vosiel som\n", i);
-                }
-                if (array[length - i - 1 ].day >= start && array[length - i-1].day <= end && found_upper == 0) 
-                {
-                    upper= array[length - i-1].value;
-                    printf("%d vosiel som inde\n", length - i-1);
-                }
-*/
