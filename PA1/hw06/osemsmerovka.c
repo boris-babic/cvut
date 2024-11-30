@@ -28,7 +28,7 @@ void append_line(char ***array, int *length, int *index, char *current) {
     (*array)[*index] = strdup(current);  // Make a copy of the line
 }
 
-void print_table(char ** array, int rows, int line_length)
+void print_table_char(char ** array, int rows, int line_length)
 {
     for (int i = 0; i < rows; i++)
     {
@@ -37,6 +37,19 @@ void print_table(char ** array, int rows, int line_length)
         {
 
             printf("(%c):(%03d) ", array[i][j], array[i][j]);
+        }
+        printf("\n");
+    }
+}
+
+void print_table_int(int ** array, int rows, int line_length)
+{
+    for (int i = 0; i < rows; i++)
+    {
+        printf("%d:    ", i);
+        for (int j= 0; j< line_length; j++)
+        {
+            printf("%d", array[i][j]);
         }
         printf("\n");
     }
@@ -76,11 +89,23 @@ int main()
         i_index++;
     }
     printf("skoncil som nacitanie\n");
-    print_table(table, i_index, line_length);
     for (int i = 0; i < i_index; i++)
     {
         table[i][line_length-1] = '\0';
     }
-    print_table(table, i_index, line_length);
+    print_table_char(table, i_index, line_length);
+
+    int size_i = i_index, size_j = line_length-1;
+    int ** table_found = (int**)malloc(sizeof(int *) * size_i);
+    for (int i= 0; i <size_j; i++)
+    {
+        table_found[i] = (int *)calloc(size_i, sizeof(int));
+    }
+    print_table_int(table_found, size_i, size_j);
+
+
+
+
+
     return 0;
 }
