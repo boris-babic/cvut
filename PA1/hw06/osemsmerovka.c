@@ -32,8 +32,13 @@ void print_table(char ** array, int rows, int line_length)
 {
     for (int i = 0; i < rows; i++)
     {
-        printf("%d:", i);
-        printf("%s", array[i]);
+        printf("%d:    ", i);
+        for (int j= 0; j< line_length; j++)
+        {
+
+            printf("(%c):(%03d) ", array[i][j], array[i][j]);
+        }
+        printf("\n");
     }
 }
 
@@ -60,7 +65,6 @@ int main()
     int i_index = 1;
     while ((number_of_characters = getline(&line, &len, stdin)) > 1)
     {
-        line[number_of_characters] = '\0';
         //printf("nacital som %s\n", line);
         if (number_of_characters != line_length)
         {
@@ -72,7 +76,11 @@ int main()
         i_index++;
     }
     printf("skoncil som nacitanie\n");
-    printf("riadky stlpce %d %ld, %d\n", rows,sizeof(table[0]), line_length);
+    print_table(table, i_index, line_length);
+    for (int i = 0; i < i_index; i++)
+    {
+        table[i][line_length-1] = '\0';
+    }
     print_table(table, i_index, line_length);
     return 0;
 }
