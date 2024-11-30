@@ -118,7 +118,7 @@ int main()
         else goto fail;
     }
     //printf("-------------------------------------------------------------\n");
-    sort_array(array, MAX);
+    //sort_array(array, MAX);
     //inputing what we want to calculate
     printf("Naklad:\n");
     int end;
@@ -141,9 +141,9 @@ int main()
         int active = 1;
         while (active)
         {
-            //printf("den %d\n", day);
-            int index = bin_search(array, MAX, day);
-            for (int i = 0; i <= index; i++)
+            //printf("den %d\n", day);hbhjasdiasod
+            //int index = bin_search(array, MAX, day);
+            for (int i = 0; i <= count; i++)
             {
                 if (day >= array[i].start && day <= array[i].end)
                 {
