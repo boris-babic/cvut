@@ -416,7 +416,7 @@ int main()
     //print_table_int(table_found, size_i, size_j);
 
     char operation = ' ';
-    char  word[100];
+    char  word[1000];
     char enter = '\n';
     while(!feof(stdin))
     {
@@ -425,7 +425,7 @@ int main()
         //printf("---------------------operation (%c)\n", operation);
         if(operation == '#')
         {
-            scanf(" %99s", word);
+            scanf(" %999s", word);
             if (strlen(word) < 2)
             {
                 printf("Nespravny vstup.\n");
@@ -438,7 +438,7 @@ int main()
             scanf("%c", &enter);
         } else if (operation == '-')
         {
-            scanf(" %99s", word);
+            scanf(" %999s", word);
             if (strlen(word) < 2)
             {
                 printf("Nespravny vstup.\n");
