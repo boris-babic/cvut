@@ -3,13 +3,6 @@
 #include <string.h>
 #include <ctype.h>
 
-/*
-1.dorobit nacitanie jednotlivych cisel na konecny check
-2.dorobit input check
-
-*/
-
-
 char * remove_char(char * string, int length, char c)
 {
     char * result = (char *)calloc(length, sizeof(char));
@@ -37,60 +30,42 @@ void print_string(char * input, int length)
     printf("\n");
 }
 
-int compare_chars(char * input_a, char * input_b)
-{
+void remove_leading_zeros(char * str) {
+    int i = 0;
+    while (str[i] == '0' && str[i] != '\0') {
+        i++;
+    }
+    memmove(str, str + i, strlen(str) - i + 1);
+}
+
+
+int compare_chars(char * input_a, char * input_b) {
+    remove_leading_zeros(input_a);
+    remove_leading_zeros(input_b);
+
     int length_a = strlen(input_a);
     int length_b = strlen(input_b);
-    int max;
-    if(length_a < length_b) max = length_b;
-    else max = length_a;
-    char * a = (char *)calloc(max+1, sizeof(char));
-    char * b = (char *)calloc(max+1, sizeof(char));
-    for (int i = 0; i < max - length_a; i++)
-    {
-        a[i] = '0';
-    }
-    for (int i = 0; i < max - length_b; i++)
-    {
-        b[i] = '0';
-    }
-    for (int i = 0; i < length_a; i++)
-    {
-        a[max - length_a + i] = input_a[i];
-    }
-    for (int i = 0; i < length_b; i++)
-    {
-        b[max - length_b + i] = input_b[i];
+
+    if (length_a > length_b) {
+        return 0;  
+    } else if (length_a < length_b) {
+        return 1;  
     }
 
-    for (int i = 0; i < max; i++)
-    {
-        if (a[i] < b[i])
-        {
-            free(a);
-            free(b);
-            return 1;
-        } else if(a[i] > b[i])
-        {
-            free(a);
-            free(b);
-            return 0;
+    for (int i = 0; i < length_a; i++) {
+        if (input_a[i] < input_b[i]) {
+            return 1;  
+        } else if (input_a[i] > input_b[i]) {
+            return 0;  
         }
     }
-    free(a);
-    free(b);
     return 1;
 }
-
-int is_even(char * number)
-{
-    if (number[strlen(number)-1] == '0' ||
-        number[strlen(number)-1] == '2' ||
-        number[strlen(number)-1] == '4' ||
-        number[strlen(number)-1] == '6' ||
-        number[strlen(number)-1] == '8') return 1;
-    else return 0;
+int is_even(char *number) {
+    char last_digit = number[strlen(number) - 1];
+    return (last_digit == '0' || last_digit == '2' || last_digit == '4' || last_digit == '6' || last_digit == '8');
 }
+
 int check_if_valid(char * data, int length)
 {
     char * pt1;
@@ -102,37 +77,21 @@ int check_if_valid(char * data, int length)
     
     if( !pt2)
     {
-        //printf("a1\n");
         return 1;
     }
-    //printf("\n");
-    //print_string(pt1, strlen(pt1)+1);
-    //print_string(pt2, strlen(pt2)+1);
-
     if(!is_even(pt1)) result = 1;
     else result = compare_chars(pt1, pt2);
-    if(!result)
-    {
-        //printf("a2\n");
-        return 0;
-    }
+    if (!result) return 0;
 
     pt1 = pt2;
     while ((pt2 = strtok(NULL, ",")))
     {
-        //print_string(pt2, strlen(pt2)+1);
-
         if(!is_even(pt1)) result = 1;
         else result = compare_chars(pt1, pt2);
 
         pt1 = pt2;
-        if (!result)
-        {
-            //printf("a3\n");
-            return 0;
-        }
+        if (!result) return 0;
     }
-    //printf("a4 je to dobre\n");
     return result;
 }
 
@@ -140,7 +99,6 @@ int check_if_valid(char * data, int length)
 
 int check_input(char * input_data, int length)
 {
-    // returns 1 if the input is valid
     if (input_data[0] != '?' && input_data[0] != '#') return 0;
     int index = 1;
     while (isspace(input_data[index])) index++;
@@ -168,14 +126,11 @@ void get_combinations_recursive(char * result,
         char * formated_result2;
         formated_result = remove_char(result, length, '-');
         formated_result2 = remove_char(result, length, '-');
-        //printf("\n\n\n\n-------------------------------------------------------------------------------------------------------------------\n");
-        //print_string(formated_result, strlen(formated_result)+1);
         if(check_if_valid(formated_result2, strlen(formated_result2)+1))
         {
             (*count)++;
             if (write) printf("* %s\n", formated_result);
         }
-        //printf("%d------------------%d\n", *count, check_if_valid(formated_result, strlen(formated_result)+1));
         free(formated_result);
         free(formated_result2);
     } else
@@ -194,18 +149,17 @@ void get_combinations(char * input,int number_of_characters, int write)
     int count = 0;
     char * data = (char *) calloc (length, sizeof(char));
     char * result = (char *) calloc (length, sizeof(char));
+
     for (int i = 0; i < length; i++)
     {
         if (i%2) data[i] = '_';
         else data[i] = input[i/2];
     }
     data[length - 1] = '\0'; 
-    //print_string(input, length);
-    //printf("length: %d ", length);
-    //print_string(data, length);
+
     get_combinations_recursive(result, data, length, 0, &count, write);
     printf("Celkem: %d\n", count);
-    //print_string(result, length);
+
     free(data);
     free(result);
 
