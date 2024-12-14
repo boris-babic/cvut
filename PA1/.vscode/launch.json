@@ -5,21 +5,25 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "tento daj",
+            "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "home/babicbor/cvut/PA1/hw06/osemsmerovka", // Replace with your executable path
+            "program": "hw08/a.out",
             "args": [],
             "stopAtEntry": false,
-            "cwd": "home/babicbor/cvut/PA1/hw06/",
+            "cwd": "$hw08/",
             "environment": [],
-            "externalConsole": false, // Use the VS Code terminal for debugging output
+            "externalConsole": false,
             "MIMode": "gdb",
-            "miDebuggerPath": "/usr/bin/gdb", // Ensure the path matches your WSL gdb installation
             "setupCommands": [
                 {
                     "description": "Enable pretty-printing for gdb",
                     "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
                     "ignoreFailures": true
                 }
             ]

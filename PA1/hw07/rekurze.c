@@ -110,7 +110,12 @@ int check_input(char * input_data, int length)
     }
     return result;
 }
-
+int shall_i_continue(char ** data)
+{
+    int length = strlen(data);
+    data[length] = '\0';
+    return check_if_valid(data, length);
+}
 void get_combinations_recursive(char * result,
                                 char * data,
                                 int length,
@@ -138,8 +143,11 @@ void get_combinations_recursive(char * result,
         result[current_index] = data[current_index];
         result[current_index+1] = '-';
         get_combinations_recursive(result, data, length, current_index+2, count, write);
-        result[current_index+1] = ',';
-        get_combinations_recursive(result, data, length, current_index+2, count, write);
+        if(shall_i_continue(*result))
+        {
+            result[current_index+1] = ',';
+            get_combinations_recursive(result, data, length, current_index+2, count, write);
+        }
     }
 }
 
