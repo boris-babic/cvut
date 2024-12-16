@@ -21,7 +21,7 @@ typedef struct
 
 #endif /* __PROGTEST__ */
 
-TNODE * create_node(char * name)
+TNODE * create_node(char * name = NULL)
 {
   TNODE * result = (TNODE *)malloc(sizeof(TNODE));
   
@@ -29,20 +29,28 @@ TNODE * create_node(char * name)
   {
     result->m_Child[i] = NULL;
   }
-  result->m_Name = strdup(name);
+  if (name == NULL) result->m_Name = nullptr;
+  else result->m_Name = name;
   return result;
 }
 void print_book_recursive(TPHONEBOOK * book, TNODE * current, char * number, int depth)
 {
-  printf("%s: %s\n", number, current->m_Name ? current->m_Name : "(null)");
+  //printf("zatial\n");
+  for(int i = 0; i < depth; i++)
+  {
+    printf("%c", number[i]);
+  }
+  //printf("je to good");
+  printf(": %s\n", current->m_Name ? current->m_Name : "(null)");
   for (int i = 0; i < 10; i++)
   {
     
-    if(current->m_Child[i] != NULL)
+    if(current->m_Child[i] != nullptr)
     {
-      printf("vojdem\n");
+      //printf("vojdem\n");
       number[depth] = '0' + i;
-      printf("tocim sa once again %s(%d)\n", number,i); 
+      //printf("tocim sa once again %s(%d)\n", number,i); 
+      //printf("zijem?\n");
       print_book_recursive(book, current->m_Child[i], number, depth+1);
     }
   }
@@ -50,8 +58,9 @@ void print_book_recursive(TPHONEBOOK * book, TNODE * current, char * number, int
 void print_book(TPHONEBOOK * book)
 {
   char number[10];
-  printf("zijem\n");
-  print_book_recursive(book, book->m_Root, number, 0);
+  //printf("zijem\n");
+  if(book->m_Root) print_book_recursive(book, book->m_Root, number, 0);
+  else printf("prazdna kniha");
 }
 
 
@@ -59,24 +68,24 @@ bool addPhone_recursive(TPHONEBOOK * book, TNODE * current,  char * phone, char 
 {
   if(phone[0] == '\0')
   {
-    if (strcmp(current->m_Name, "empty"))
-    {
-      current->m_Name = strdup(name);
-      return true;
-    } else
+    if (current->m_Name == nullptr)
     {
       current->m_Name = strdup(name);
       book->m_Size++;
-      return false;
+      return true;
+    } else
+    {
+      free(current->m_Name);
+      current->m_Name = strdup(name);
+      
+      return true;
     }
   }
-  printf("tlacim\n");
   int digit = phone[0] - '0';
   if (!current->m_Child[digit])
   {
-    current->m_Child[digit] = create_node(strdup("empty"));
+    current->m_Child[digit] = create_node(nullptr);
   }
-  printf("pokracujem\n");
   return addPhone_recursive(book, current->m_Child[digit], phone + 1, name);
 }
 
@@ -84,30 +93,72 @@ bool         addPhone  ( TPHONEBOOK * book,
                          const char * phone,
                          const char * name )
 {
-  if (!book->m_Root) book->m_Root = create_node(strdup("empty"));
-  printf("fungujem\n");
+  if (!book->m_Root) book->m_Root = create_node();
   return addPhone_recursive(book, book->m_Root, (char *)phone, (char *)name);
 }
 
+void delBook_recursive(TNODE * current)
+{
+  //printf("vymazal som \n");
+  for (int i = 0; i < 10; i++)
+  {
+    if (current->m_Child[i] != nullptr)
+    {
+      delBook_recursive(current->m_Child[i]);
+    }
+  }
+  free(current->m_Name);
+  free(current);
+}
 void         delBook   ( TPHONEBOOK * book )
 {
-  // todo
+  delBook_recursive(book->m_Root);
 }
-/*
+
+
+
+bool delPhone_recursive(TNODE * current, const char * phone, int depth)
+{
+  int next_digit = phone[depth] - '0';
+  if (phone[depth +1] == '\0')
+  {
+    //idem vymazat dalsi element ak existuje
+    if (current->m_Child[next_digit] != nullptr)
+    {
+      delBook_recursive(current->m_Child[next_digit]);
+      current->m_Child[next_digit] = nullptr;
+      return true;
+    } else return false;
+  } else
+  {
+    if (current->m_Child[next_digit] != nullptr)
+    {
+      return delPhone_recursive(current->m_Child[next_digit], phone, depth + 1);
+    } else
+    {
+      return false;
+    }
+  }
+}
+
 bool         delPhone  ( TPHONEBOOK * book,
                          const char * phone )
 {
-  // todo
+  TNODE * current = book->m_Root;
+  int depth = 0;
+  return delPhone_recursive(current, phone, depth);
 }
+
+
 const char * findPhone ( TPHONEBOOK * book,
                          const char * phone )
 {
-  // todo
+  return phone;
 }
-*/
+
 #ifndef __PROGTEST__
 
-/*
+
 void tests()
 {
   TPHONEBOOK b = { nullptr, 0 };
@@ -404,14 +455,24 @@ void tests()
 
   delBook ( &b );
 }
-*/
+
 int main ()
 {
+  /*
   TPHONEBOOK b = { nullptr, 0 };
+  bool result;
   addPhone(&b, "421", "SLOVENSKOOOOOO");
-  addPhone ( &b, "42022435", "Czech Republic CVUT" );
-  printf("hopa\n");
+  addPhone(&b, "420", "Czech Republic" );
+  addPhone(&b, "4203", "Czech Republic CVUT" );
+  addPhone(&b, "4202", "je to taaam");
+  //printf("hopa\n");
   print_book(&b);
+  result = delPhone(&b, "4202");
+  printf("vysledok je (%d)\n", result);
+  print_book(&b);
+  delBook(&b);
+  */
+  tests();
   return EXIT_SUCCESS;
 }
 #endif /* __PROGTEST__ */
