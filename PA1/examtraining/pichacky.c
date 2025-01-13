@@ -89,9 +89,14 @@ int main() {
             return 0;
         }
         scanf("%d:%d - %d:%d }", &from_hours, &from_minutes, &to_hours, &to_minutes);
-        if (!check_time(from_hours, from_minutes) || !check_time(to_hours, to_minutes)) {
+
+        if (!check_time(from_hours, from_minutes) || !check_time(to_hours, to_minutes) || (get_time(from_hours, from_minutes) > get_time(to_hours, to_minutes))) {
             printf("Nespravny vstup.\n");
             //free_array(&list);
+            person * new_data = (person *)realloc(list.data, sizeof(person)* count);
+            list.data = new_data;
+            list.length = count;
+            free_array(&list);
             free(list.data);
             free(name);
             return 0;
