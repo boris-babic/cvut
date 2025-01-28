@@ -72,14 +72,17 @@ Map * get_prefix_sum(Map * array) {
             //printf("%d %d\n", i, j);
             sums->data[i][j] = array->data[i][j];
             if( i >=1 && j >= 1){
+                // adds sums from the field above and to the left and subtracts sum to the rightleft (cos its there twice)
                 sums->data[i][j] += sums->data[i-1][j];
                 sums->data[i][j] += sums->data[i][j-1];
                 sums->data[i][j] -= sums->data[i-1][j-1];
             }else {
                 if (i == 0 && j > 0) {
+                    // only adds from the field above
                   sums->data[i][j] += sums->data[i][j-1];  
                 }
                 if (j == 0 && i > 0) {
+                    //only adds from the field to the right
                     sums->data[i][j] += sums->data[i-1][j];  
                 }
             }
@@ -107,10 +110,17 @@ int get_price(Map * sums, int x1, int y1, int x2, int y2) {
     return result;
 }
 
-void print_plots(Plot * result, int length) {
+void print_minimum(Plot * result, int length) {
+    int minimum = result[0].price;
     for (int i =0; i < length; i++) {
-        printf("%d, %d $%d\n", result[i].x, result[i].y, result[i].price);
+        if (minimum < result[i].price) break;
+        printf("%d, %d $%d\n", result[i].x, result[i].y, result[i].price); 
     }
+}
+
+int compare(const void *a, const void *b)
+{
+    return (((Plot *)a)->price - ((Plot *)b)->price);
 }
 
 void get_square_sum(Map * array, Map * sums, int size) {
@@ -123,7 +133,10 @@ void get_square_sum(Map * array, Map * sums, int size) {
             index +=1;
         }
     }
-    print_plots(results, index);
+    Plot * new_pointer = (Plot *)realloc(results, sizeof(Plot) * index);
+    results = new_pointer;
+    qsort(results, index, sizeof(results[0]), compare);
+    print_minimum(results, index);
     free(results);
     return;
 }
