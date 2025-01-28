@@ -4,7 +4,11 @@
 			"path": "PA1"
 		}
 	],
-	"settings": {},
+	"settings": {
+		"files.associations": {
+			"type_traits": "c"
+		}
+	},
 	"launch": {
 		"version": "0.2.0",
 		"configurations": []

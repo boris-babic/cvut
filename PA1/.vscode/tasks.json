@@ -3,18 +3,16 @@
         {
             "type": "cppbuild",
             "label": "C/C++: gcc build active file",
-            "command": "/usr/bin/g++",
+            "command": "/usr/bin/gcc",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
-                "-Wall",
-                "-pedantic",
                 "${file}",
                 "-o",
-                "home/babicbor/cvut/PA1/hw06/osemsmerovka"
+                "${fileDirname}/${fileBasenameNoExtension}"
             ],
             "options": {
-                "cwd": "$home/babicbor/cvut/PA1/hw06/"
+                "cwd": "${fileDirname}"
             },
             "problemMatcher": [
                 "$gcc"
