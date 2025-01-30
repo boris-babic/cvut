@@ -49,9 +49,9 @@ Plot create_plot(int x, int y, int price) {
 }
 
 void print_map(Map * array) {
-    for (int i = 0; i < array->width; i++) {
-        for (int j = 0; j < array->height; j++) {
-            printf("(%02d/%02d----%02d) ", i, j, array->data[i][j]);
+    for (int j = 0; j < array->height; j++) {
+        for (int i = 0; i < array->width; i++) {
+            printf("(%02d/%02d----    %02d) ", i, j, array->data[i][j]);
         }
         printf("\n");
     }
@@ -68,8 +68,8 @@ void free_map(Map * array) {
 
 int fill_map(Map * array) {
     int value;
-    for (int i = 0; i < array->width; i++) {
-        for (int j = 0; j < array->height; j++) {
+    for (int j = 0; j < array->height; j++) {
+        for (int i = 0; i < array->width; i++) {
             if (scanf("%d", &value) != 1){
                 printf("zly vstup\n");
                 free_map(array);
@@ -127,9 +127,9 @@ int get_price(Map * sums, int x1, int y1, int x2, int y2) {
 }
 
 void print_minimum(Plot * result, int length) {
-    int minimum = result[0].price;
+    //int minimum = result[0].price;
     for (int i =0; i < length; i++) {
-        if (minimum < result[i].price) break;
+        //if (minimum < result[i].price) break;
         printf("%d, %d $%d\n", result[i].x, result[i].y, result[i].price); 
     }
 }
@@ -147,6 +147,26 @@ void get_square_sum(Map * array, Map * sums, int size) {
         for (int j = 0; j <= array->height - size; j++) {
             results[index] = create_plot(i, j, get_price(sums, i, j, i + size - 1, j + size - 1)); // -1 lebo povodny index obsahuje uz jednu dlzku
             index +=1;
+        }
+    }
+    Plot * new_pointer = (Plot *)realloc(results, sizeof(Plot) * index);
+    results = new_pointer;
+    qsort(results, index, sizeof(results[0]), compare);
+    print_minimum(results, index);
+    free(results);
+    return;
+}
+
+void calculate_rectangles(Map * array, Map * sums, int owned_x, int owned_y, int size_x, int size_y) {
+    int all_combinations = size_x * size_y;
+    Plot * results = (Plot *)malloc(sizeof(Plot) * all_combinations);
+    int index = 0;
+    for (int i = 0; i < size_x; i++) {
+        if (owned_x - i < 0) break;
+        for ( int j = 0; j < size_y; j++){
+            if (owned_y - j < 0) break;
+            results[index] = create_plot(owned_x - i, owned_y - j, get_price(sums, owned_x - i, owned_y - j, owned_x - i + size_x -1 , owned_y - j + size_y - 1)); 
+            index +=1;        
         }
     }
     Plot * new_pointer = (Plot *)realloc(results, sizeof(Plot) * index);
@@ -196,8 +216,22 @@ int main(){
     }
     */
     //part for rectangles and specific plot cenova mapa 2
+    int x, y, size_x, size_y;
+    while(!feof(stdin)){
 
-    
+        if(scanf("%d %d %d %d", &x, &y, &size_x, &size_y) != 4 && !feof(stdin)){
+            printf("Nespravny vstup\n");
+            free_map(array);
+            free_map(sums);
+            return 1;
+        }
+        if(feof(stdin)) break;
+        if (size_x > array->width || size_y > array->height) {
+            printf("Neexistuje\n");
+        } else {
+            calculate_rectangles(array, sums, x, y, size_x, size_y);
+        }
+    }
 
     free_map(array);
     free_map(sums);
