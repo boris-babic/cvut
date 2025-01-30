@@ -1,6 +1,22 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/*
+int main() {
+    int added;
+    for (int j = 0; j < 10; j++){
+    for (int i =10 + j; i < 100; i+= 10) {
+        added = (i / 10) * ((i / 10)+1);
+        printf("%d: %d ---- %d  a rozdiel je: %d", i, i * i, added * 100 + i , - i * i + (added * 100 + i));
+        if ( i * i == added * 100 + i) {
+            printf("          rovnaju sa");
+        }
+        printf("\n");
+    }
+    printf("\n\n\n\n");
+    }
+}
+*/
 typedef struct Map {
     int width;
     int height;
@@ -161,6 +177,7 @@ int main(){
     print_map(sums);
 
     //part for squares cenova mapa 1
+    /*
     int size;
     while(!feof(stdin)){
         if(feof(stdin)) break;
@@ -177,10 +194,11 @@ int main(){
             get_square_sum(array, sums, size);
         }
     }
-    //part for rectangles and specific plot cenova mapa 2
-    /*
-    
     */
+    //part for rectangles and specific plot cenova mapa 2
+
+    
+
     free_map(array);
     free_map(sums);
     return 0;
