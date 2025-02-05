@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 /*
 int main() {
@@ -70,9 +71,7 @@ int fill_map(Map * array) {
     int value;
     for (int j = 0; j < array->height; j++) {
         for (int i = 0; i < array->width; i++) {
-            if (scanf("%d", &value) != 1){
-                printf("zly vstup\n");
-                free_map(array);
+            if (scanf("%d", &value) != 1 || feof(stdin)){
                 return 1;
             }
             array->data[i][j] = value;
@@ -126,11 +125,10 @@ int get_price(Map * sums, int x1, int y1, int x2, int y2) {
     return result;
 }
 
-void print_minimum(Plot * result, int length) {
-    //int minimum = result[0].price;
-    for (int i =0; i < length; i++) {
-        //if (minimum < result[i].price) break;
-        printf("%d, %d $%d\n", result[i].x, result[i].y, result[i].price); 
+void print_minimum(Plot * result, int length, int minimum) {
+    printf("Nejlevnejsi: %d\n", minimum);
+    for (int i = 0; i < length; i++) {
+        if (result[i].price == minimum) printf(" * (%d,%d)\n", result[i].x, result[i].y); 
     }
 }
 
@@ -143,16 +141,19 @@ void get_square_sum(Map * array, Map * sums, int size) {
     int all_combinations = (array->width - size + 1) * (array->height - size + 1); // ak by to bol tight fit tak nech nevznikne nula
     Plot * results = (Plot *)malloc(sizeof(Plot) * all_combinations);
     int index = 0;
+    int minimum = INT_MAX;
+    int current;
     for (int i = 0; i <= array->width - size; i++) {
         for (int j = 0; j <= array->height - size; j++) {
-            results[index] = create_plot(i, j, get_price(sums, i, j, i + size - 1, j + size - 1)); // -1 lebo povodny index obsahuje uz jednu dlzku
+            current = get_price(sums, i, j, i + size - 1, j + size - 1);
+            results[index] = create_plot(i, j, current); // -1 lebo povodny index obsahuje uz jednu dlzku
+            if (current < minimum) minimum = current;
             index +=1;
         }
     }
     Plot * new_pointer = (Plot *)realloc(results, sizeof(Plot) * index);
     results = new_pointer;
-    qsort(results, index, sizeof(results[0]), compare);
-    print_minimum(results, index);
+    print_minimum(results, index, minimum);
     free(results);
     return;
 }
@@ -161,27 +162,31 @@ void calculate_rectangles(Map * array, Map * sums, int owned_x, int owned_y, int
     int all_combinations = size_x * size_y;
     Plot * results = (Plot *)malloc(sizeof(Plot) * all_combinations);
     int index = 0;
+    int minimum = INT_MAX;
+    int current;
     for (int i = 0; i < size_x; i++) {
         if (owned_x - i < 0) break;
         for ( int j = 0; j < size_y; j++){
             if (owned_y - j < 0) break;
-            results[index] = create_plot(owned_x - i, owned_y - j, get_price(sums, owned_x - i, owned_y - j, owned_x - i + size_x -1 , owned_y - j + size_y - 1)); 
+            current = get_price(sums, owned_x - i, owned_y - j, owned_x - i + size_x -1 , owned_y - j + size_y - 1);
+            results[index] = create_plot(owned_x - i, owned_y - j, current);
+            if (current < minimum) minimum = current; 
             index +=1;        
         }
     }
     Plot * new_pointer = (Plot *)realloc(results, sizeof(Plot) * index);
     results = new_pointer;
-    qsort(results, index, sizeof(results[0]), compare);
-    print_minimum(results, index);
+    print_minimum(results, index, current);
     free(results);
     return;
 }
 
 int main(){
-    printf("fungujem\n");
+    //printf("fungujem\n");
     int width = 0;
     int height = 0;
-    if (scanf("%d %d", &width, &height) != 2) { //nespravny vstup
+    printf("Mapa:\n");
+    if (scanf("%d %d", &width, &height) != 2 || width < 1 || height < 1) { //nespravny vstup
         printf("Nespravny vstup\n");
         return 1;
     }
@@ -191,14 +196,20 @@ int main(){
         free_map(array);
         return 1;
     }
+    if(feof(stdin)) { //nespravny vstup 
+        printf("Nespravny vstup\n");
+        free_map(array);
+        return 1;
+    }
     Map * sums = get_prefix_sum(array);
     
-    print_map(array);   
-    print_map(sums);
+    //print_map(array);   
+    //print_map(sums);
 
     //part for squares cenova mapa 1
-    /*
+
     int size;
+    printf("Pozemky:\n");
     while(!feof(stdin)){
         if(feof(stdin)) break;
         if(scanf("%d", &size) != 1 && !feof(stdin)){
@@ -208,14 +219,25 @@ int main(){
             free_map(sums);
             return 1;
         }
+        if (size <= 0){
+            printf("Nespravny vstup\n");
+            free_map(array);
+            free_map(sums);
+            return 1;
+        }
+        
+        if (feof(stdin)) break;
         if (size > array->width || size > array->height) {
+            
             printf("Neexistuje\n");
         } else {
             get_square_sum(array, sums, size);
         }
+        if(feof(stdin)) break;
     }
-    */
+
     //part for rectangles and specific plot cenova mapa 2
+    /*
     int x, y, size_x, size_y;
     while(!feof(stdin)){
 
@@ -232,7 +254,7 @@ int main(){
             calculate_rectangles(array, sums, x, y, size_x, size_y);
         }
     }
-
+    */
     free_map(array);
     free_map(sums);
     return 0;

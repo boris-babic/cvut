@@ -1,0 +1,1 @@
+for file in cenova_mapa_testy/*_in.txt; do ./a.out < "$file" | diff - ${file/in/out}; done
