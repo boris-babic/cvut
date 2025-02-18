@@ -145,8 +145,8 @@ void get_square_sum(Map * array, Map * sums, int size) {
     int current;
     for (int i = 0; i <= array->width - size; i++) {
         for (int j = 0; j <= array->height - size; j++) {
-            current = get_price(sums, i, j, i + size - 1, j + size - 1);
-            results[index] = create_plot(i, j, current); // -1 lebo povodny index obsahuje uz jednu dlzku
+            current = get_price(sums, i, j, i + size - 1, j + size - 1); // -1 lebo povodny index obsahuje uz jednu dlzku
+            results[index] = create_plot(i, j, current); 
             if (current < minimum) minimum = current;
             index +=1;
         }
