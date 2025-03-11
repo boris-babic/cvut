@@ -1,0 +1,2 @@
+# Treat files without an extension as binary
+* -text
