@@ -32,10 +32,11 @@ class Person {
          std::string name;
          std::string addr;
          std::string account;
+         int balance;
     public:
         Person( std::string n,
                 std::string ad,
-                std::string ac): name(n), addr(ad), account(ac) {}
+                std::string ac): name(n), addr(ad), account(ac), balance(0) {}
         void print(){
           std::cout << "Osoba: " << this->name << " byva na " << this->addr << " s cislom uctu " << this->account << std::endl;
         }
@@ -52,6 +53,10 @@ class Person {
         }
         std:: string get_address() const { 
           return this->addr;
+        }
+        void change_balance(int amount) {
+          this->balance += amount;
+          return;
         }
     
 };
@@ -97,9 +102,30 @@ class CTaxRegister
       return true;
     }
     }
-    /*
+
     bool      death      ( const std::string    & name,
-                           const std::string    & addr );
+                           const std::string    & addr ) {
+      Person deadguy (name, addr, "null");
+      auto iterator_name = std::lower_bound(data_by_name.begin(),
+                                     data_by_name.end(),
+                                     deadguy,
+                                     compare_name);
+      //same but in data_by_account
+      auto iterator_account = std::lower_bound(data_by_number.begin(),
+                                              data_by_number.end(),
+                                              deadguy,
+                                              compare_account);
+    if (iterator_name == data_by_name.end()) {
+      return false;
+    }
+    else if (*iterator_name == deadguy) {
+      data_by_name.erase(iterator_name);
+      data_by_number.erase(iterator_account);
+      return true;
+    } else {
+      return false;
+    }
+    }
     bool      income     ( const std::string    & account,
                            int                    amount );
     bool      income     ( const std::string    & name,
@@ -115,7 +141,6 @@ class CTaxRegister
                            std::string          & account,
                            int                  & sumIncome,
                            int                  & sumExpense ) const;
-    */
     void      print_by_name() {
       for (auto person :this->data_by_name) {
         person.print();
@@ -143,6 +168,21 @@ int main ()
   assert ( !b0 . birth ( "John Smith", "Main Street 17", "Z3454Z" ) );
   assert ( !b0 . birth ( "Joasda Smith", "Main Street 17", "Z343rwZ" ) );
   b0.print_by_name();
+  std::cout << "\n\n" << std::endl;
+  b0.print_by_number();
+  std::cout << "\ntestujeme death" << std::endl;
+  
+  assert( b0 . death ( "John Smith", "Main Street 17"));
+  assert( b0 . death ( "Jane Hacker", "Main Street 17"));
+  assert( !b0 . death ( "John Smith", "Main Street 17"));
+  assert( b0 . death ( "Peter Hacker", "Main Street 17"));
+  assert( b0 . death ( "John Smith", "Oak Road 23"));
+  assert( !b0 . death ( "Joe Doe", "Off Street 5"));
+
+
+
+  b0.print_by_name();
+  std::cout << "\n\n" << std::endl;
   b0.print_by_number();
   /*
   assert ( b0 . income ( "Xuj5#94", 1000 ) );
