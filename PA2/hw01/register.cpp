@@ -38,7 +38,10 @@ class Person {
                 std::string ad,
                 std::string ac): name(n), addr(ad), account(ac), balance(0) {}
         void print(){
-          std::cout << "Osoba: " << this->name << " byva na " << this->addr << " s cislom uctu " << this->account << std::endl;
+          std::cout << "Osoba: " << this->name <<
+                       " byva na " << this->addr <<
+                       " s cislom uctu " << this->account <<
+                       "a na ucte ma " << this->balance << std::endl;
         }
         bool operator == ( Person & other)  {
           return (this->get_name() == other.get_name() &&
@@ -58,10 +61,23 @@ class Person {
           this->balance += amount;
           return;
         }
+        void change_name_addr(std::string n, std::string add) {
+          this->name = n;
+          this->addr = add;
+          return;
+        }
+        void change_account (std::string acc) {
+          this->account = acc;
+          return;
+        }
     
 };
 bool compare_name(const Person & a, const Person & b) {
-  return a.get_name() < b.get_name();
+  if  (a.get_name() == b.get_name()) {
+    return a.get_address() < b.get_address();
+  } else {
+    return a.get_name() < b.get_name();
+  }
 }
 bool compare_account(const Person & a, const Person & b) {
   return a.get_account() < b.get_account();
@@ -127,10 +143,50 @@ class CTaxRegister
     }
     }
     bool      income     ( const std::string    & account,
-                           int                    amount );
+                           int                    amount ) {
+      Person guy ("Jozko Mrkvicka", "nowhere", account);
+      auto iterator_account = std::lower_bound( data_by_number.begin(),
+                                                data_by_number.end(),
+                                                guy,
+                                                compare_account);
+      if (iterator_account == data_by_number.end()) {
+        return false;
+      } else {
+        guy.change_account((*iterator_account).get_account());
+        guy.change_name_addr((*iterator_account).get_name(), (*iterator_account).get_address());
+        auto iterator_name = std::lower_bound(data_by_name.begin(),
+                                     data_by_name.end(),
+                                     guy,
+                                     compare_name);
+        (*iterator_account).change_balance(amount);
+        (*iterator_name).change_balance(amount);
+        return true;
+      }
+    }
+    
     bool      income     ( const std::string    & name,
                            const std::string    & addr,
-                           int                    amount );
+                           int                    amount ) {
+      Person guy (name, addr, "null");
+      
+      auto iterator_name = std::lower_bound(data_by_name.begin(),
+                                                data_by_name.end(),
+                                                guy,
+                                                compare_name);
+      if (iterator_name == data_by_number.end()) {
+        return false;
+      } else {
+        guy.change_account((*iterator_name).get_account());
+        guy.change_name_addr((*iterator_name).get_name(), (*iterator_name).get_address());
+        auto iterator_account = std::lower_bound( data_by_number.begin(),
+                                                data_by_number.end(),
+                                                guy,
+                                                compare_account);
+        (*iterator_account).change_balance(amount);
+        (*iterator_name).change_balance(amount);
+        return true;
+      }
+    }
     bool      expense    ( const std::string    & account,
                            int                    amount );
     bool      expense    ( const std::string    & name,
@@ -167,29 +223,27 @@ int main ()
   assert ( b0 . birth ( "John Smith", "Main Street 17", "Z343rwZ" ) );
   assert ( !b0 . birth ( "John Smith", "Main Street 17", "Z3454Z" ) );
   assert ( !b0 . birth ( "Joasda Smith", "Main Street 17", "Z343rwZ" ) );
+
   b0.print_by_name();
   std::cout << "\n\n" << std::endl;
   b0.print_by_number();
-  std::cout << "\ntestujeme death" << std::endl;
+  std::cout << "\ntestujeme income" << std::endl;
+
+
+
+
   
-  assert( b0 . death ( "John Smith", "Main Street 17"));
-  assert( b0 . death ( "Jane Hacker", "Main Street 17"));
-  assert( !b0 . death ( "John Smith", "Main Street 17"));
-  assert( b0 . death ( "Peter Hacker", "Main Street 17"));
-  assert( b0 . death ( "John Smith", "Oak Road 23"));
-  assert( !b0 . death ( "Joe Doe", "Off Street 5"));
 
-
-
-  b0.print_by_name();
-  std::cout << "\n\n" << std::endl;
-  b0.print_by_number();
-  /*
   assert ( b0 . income ( "Xuj5#94", 1000 ) );
   assert ( b0 . income ( "634oddT", 2000 ) );
   assert ( b0 . income ( "123/456/789", 3000 ) );
   assert ( b0 . income ( "634oddT", 4000 ) );
   assert ( b0 . income ( "Peter Hacker", "Main Street 17", 2000 ) );
+
+  b0.print_by_name();
+  std::cout << "\n\n" << std::endl;
+  b0.print_by_number();
+  /*
   assert ( b0 . expense ( "Jane Hacker", "Main Street 17", 2000 ) );
   assert ( b0 . expense ( "John Smith", "Main Street 17", 500 ) );
   assert ( b0 . expense ( "Jane Hacker", "Main Street 17", 1000 ) );
