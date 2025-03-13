@@ -85,6 +85,8 @@ class Person {
         }
     
 };
+
+
 bool compare_name(const Person & a, const Person & b) {
   if  (a.get_name() == b.get_name()) {
     return a.get_address() < b.get_address();
@@ -95,6 +97,8 @@ bool compare_name(const Person & a, const Person & b) {
 bool compare_account(const Person & a, const Person & b) {
   return a.get_account() < b.get_account();
 }
+
+
 class CTaxRegister
 {
   private:
@@ -127,6 +131,7 @@ class CTaxRegister
     auto iterator_account = get_iterator_account(newborn);
     //checks if the person is already there
     if (!person_in_data(newborn)) {
+      //if not then itll insert them
       data_by_name.insert(iterator_name, newborn);
       data_by_number.insert(iterator_account, newborn);
       return true;
@@ -138,47 +143,38 @@ class CTaxRegister
     bool      death      ( const std::string    & name,
                            const std::string    & addr ) {
       Person deadguy (name, addr, "null");
-      auto iterator_name = std::lower_bound(data_by_name.begin(),
-                                     data_by_name.end(),
-                                     deadguy,
-                                     compare_name);
-      //same but in data_by_account
-      auto iterator_account = std::lower_bound(data_by_number.begin(),
-                                              data_by_number.end(),
-                                              deadguy,
-                                              compare_account);
-    if ((iterator_name == data_by_name.end())||  
-        ((*iterator_name).get_name() != deadguy.get_name() ||
-        (*iterator_name).get_address() != deadguy.get_address())) {
-      return false;
-    } else if (*iterator_name == deadguy) {
-      data_by_name.erase(iterator_name);
-      data_by_number.erase(iterator_account);
-      return true;
-    } else {
-      return false;
-    }
+      //checks if person is in the list
+      if (person_in_data(deadguy)){
+        //gets the position of the person in the data_by_name 
+        auto iterator_name = get_iterator_name(deadguy);
+        //changes the account number from null
+        deadguy.change_account((*iterator_name).get_account());
+         //gets the position of the person in the data_by_account
+        auto iterator_account = get_iterator_account(deadguy);
+
+        //deletes the person from both datasets
+        data_by_name.erase(iterator_name);
+        data_by_number.erase(iterator_account);
+        return true;
+      } else {
+        return false;
+      }
     }
     bool      income     ( const std::string    & account,
                            int                    amount ) {
       Person guy ("Jozko Mrkvicka", "nowhere", account);
-      auto iterator_account = std::lower_bound( data_by_number.begin(),
-                                                data_by_number.end(),
-                                                guy,
-                                                compare_account);
-      if ((iterator_account == data_by_number.end()) ||
-          ((*iterator_account).get_account() != guy.get_account())) {
-        return false;
-      } else {
-        guy.change_account((*iterator_account).get_account());
+      //checks if guy is in the vector
+      if (person_in_vector_by_account(guy)) {
+        auto iterator_account = get_iterator_account(guy);
+        //changes his name from the placeholder
         guy.change_name_addr((*iterator_account).get_name(), (*iterator_account).get_address());
-        auto iterator_name = std::lower_bound(data_by_name.begin(),
-                                     data_by_name.end(),
-                                     guy,
-                                     compare_name);
+        auto iterator_name = get_iterator_name(guy);
+        //changes his income parameter
         (*iterator_account).change_income(amount);
         (*iterator_name).change_income(amount);
         return true;
+      } else {
+        return false;
       }
     }
     
@@ -186,72 +182,53 @@ class CTaxRegister
                            const std::string    & addr,
                            int                    amount ) {
       Person guy (name, addr, "null");
-      
-      auto iterator_name = std::lower_bound(data_by_name.begin(),
-                                                data_by_name.end(),
-                                                guy,
-                                                compare_name);
-      if ((iterator_name == data_by_number.end()) || 
-          ((*iterator_name).get_name() != guy.get_name() ||
-           (*iterator_name).get_address() != guy.get_address())) {
-        return false;
-      } else {
+      //checks if guy is in the vector
+      if (person_in_vector_by_name(guy)) {
+        auto iterator_name = get_iterator_name(guy);
+        //changes his name from the placeholder
         guy.change_account((*iterator_name).get_account());
-        guy.change_name_addr((*iterator_name).get_name(), (*iterator_name).get_address());
-        auto iterator_account = std::lower_bound( data_by_number.begin(),
-                                                data_by_number.end(),
-                                                guy,
-                                                compare_account);
+        auto iterator_account = get_iterator_account(guy);
+        //changes his income parameter
         (*iterator_account).change_income(amount);
         (*iterator_name).change_income(amount);
         return true;
+      } else {
+        return false;
       }
     }
     bool      expense    ( const std::string    & account,
                            int                    amount ){
       Person guy ("Jozko Mrkvicka", "nowhere", account);
-      auto iterator_account = std::lower_bound( data_by_number.begin(),
-                                                data_by_number.end(),
-                                                guy,
-                                                compare_account);
-      if ((iterator_account == data_by_number.end()) ||
-          ((*iterator_account).get_account() != guy.get_account())) {
-        return false;
-      } else {
-        guy.change_account((*iterator_account).get_account());
+      //checks if guy is in the vector
+      if (person_in_vector_by_account(guy)) {
+        auto iterator_account = get_iterator_account(guy);
+        //changes his name from the placeholder
         guy.change_name_addr((*iterator_account).get_name(), (*iterator_account).get_address());
-        auto iterator_name = std::lower_bound(data_by_name.begin(),
-                                      data_by_name.end(),
-                                      guy,
-                                      compare_name);
+        auto iterator_name = get_iterator_name(guy);
+        //changes his expense parameter
         (*iterator_account).change_expense(amount);
         (*iterator_name).change_expense(amount);
         return true;
+      } else {
+        return false;
       }
     }
     bool      expense    ( const std::string    & name,
                            const std::string    & addr,
                            int                    amount ) {
       Person guy (name, addr, "null");
-      
-      auto iterator_name = std::lower_bound(data_by_name.begin(),
-                                                data_by_name.end(),
-                                                guy,
-                                                compare_name);
-      if ((iterator_name == data_by_number.end()) || 
-          ((*iterator_name).get_name() != guy.get_name() ||
-           (*iterator_name).get_address() != guy.get_address())) {
-        return false;
-      } else {
+      //checks if guy is in the vector
+      if (person_in_vector_by_name(guy)) {
+        auto iterator_name = get_iterator_name(guy);
+        //changes his name from the placeholder
         guy.change_account((*iterator_name).get_account());
-        guy.change_name_addr((*iterator_name).get_name(), (*iterator_name).get_address());
-        auto iterator_account = std::lower_bound( data_by_number.begin(),
-                                                data_by_number.end(),
-                                                guy,
-                                                compare_account);
+        auto iterator_account = get_iterator_account(guy);
+        //changes his expense parameter
         (*iterator_account).change_expense(amount);
         (*iterator_name).change_expense(amount);
         return true;
+      } else {
+        return false;
       }
     }
     bool      audit      ( const std::string    & name,
@@ -260,19 +237,17 @@ class CTaxRegister
                            int                  & sumIncome,
                            int                  & sumExpense ) const {
       Person guy (name, addr, "null");
-      auto iterator_name = std::lower_bound(data_by_name.begin(),
-                                            data_by_name.end(),
-                                            guy,
-                                            compare_name);
-      if ((iterator_name == data_by_number.end()) || 
-          ((*iterator_name).get_name() != guy.get_name() ||
-          (*iterator_name).get_address() != guy.get_address())) {
-        return false;
-      } else {
+      //checks if person is in list (this way because cant use non const function and im not going to use const for this)
+      if (std::binary_search(data_by_name.begin(), data_by_name.end(), guy, compare_name) ||
+          std::binary_search(data_by_number.begin(), data_by_number.end(), guy, compare_account)){
+        //the same thing here
+        auto iterator_name = std::lower_bound(data_by_name.begin(), data_by_name.end(), guy, compare_name);
         sumIncome = (*iterator_name).get_income();
         sumExpense = (*iterator_name).get_expense();
-        account = (*iterator_name) .get_account();
+        account = (*iterator_name).get_account();
         return true;
+      } else {
+        return false;
       }
     }
     void      print_by_name() {
@@ -306,11 +281,6 @@ int main ()
   std::cout << "\n\n" << std::endl;
   b0.print_by_number();
   std::cout << "\ntestujeme income" << std::endl;
-
-
-
-
-  
 
   assert ( b0 . income ( "Xuj5#94", 1000 ) );
   assert ( b0 . income ( "634oddT", 2000 ) );
@@ -366,9 +336,8 @@ int main ()
            && it . account () == "634oddT" );
   it . next ();
   assert ( it . atEnd () );
-
+ */
   assert ( b0 . death ( "John Smith", "Main Street 17" ) );
-  */
   CTaxRegister b1;
   assert ( b1 . birth ( "John Smith", "Oak Road 23", "123/456/789" ) );
   assert ( b1 . birth ( "Jane Hacker", "Main Street 17", "Xuj5#94" ) );
