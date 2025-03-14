@@ -15,76 +15,93 @@
 #include <algorithm>
 #endif /* __PROGTEST__ */
 
+class Person {
+  public:
+      std::string name;
+      std::string addr;
+      std::string account;
+  private:
+       
+      int income;
+      int expense;
+
+  public:
+       
+      Person( std::string n,
+              std::string ad,
+              std::string ac): name(n), addr(ad), account(ac), income(0), expense(0) {}
+      void print(){
+        std::cout << "Osoba: " << this->name <<
+                     " byva na " << this->addr <<
+                     " s cislom uctu " << this->account <<
+                     " a na ucte ma prijem " << this->income <<
+                     " a na ucte ma odjem " << this->expense << std::endl;
+      }
+      bool operator == ( Person & other)  {
+        return ((this->get_name() == other.get_name() &&
+                this->get_address() == other.get_address()) ||
+                (this->get_account() == other.get_account()));
+      }
+      std::string get_name() const {
+        return this->name;
+      }
+      std::string get_account() const {
+        return this->account;
+      }
+      std:: string get_address() const { 
+        return this->addr;
+      }
+      int get_income() const{
+        return this->income;
+      }
+      int get_expense() const{
+        return this->expense;
+      }
+      void change_income(int amount) {
+        this->income += amount;
+        return;
+      }
+      void change_expense(int amount) {
+        this->expense += amount;
+        return;
+      }
+      void change_name_addr(std::string n, std::string add) {
+        this->name = n;
+        this->addr = add;
+        return;
+      }
+      void change_account (std::string acc) {
+        this->account = acc;
+        return;
+      }
+  
+};
+
 class CIterator
 {
   public:
-    bool                atEnd   () const;
-    void                next    ();
-    const std::string & name    () const;
-    const std::string & addr    () const;
-    const std::string & account () const;
+    CIterator(size_t index, const std::vector<Person>& list) : index(index), list(list) {}
+    bool                atEnd   () const {
+      if (list.size() == index) return true;
+      else return false;
+    }
+    void                next    () {
+      this->index += 1;
+    }
+    const std::string & name    () const {
+      return list[index].name;
+    }
+    const std::string & addr    () const {
+      return list[index].addr;
+    }
+    const std::string & account () const {
+      return list[index].account;
+    }
   private:
-    // todo
+    size_t index;
+    std::vector<Person> list;
 };
 
-class Person {
-    private:
-         std::string name;
-         std::string addr;
-         std::string account;
-         int income;
-         int expense;
-
-    public:
-        Person( std::string n,
-                std::string ad,
-                std::string ac): name(n), addr(ad), account(ac), income(0), expense(0) {}
-        void print(){
-          std::cout << "Osoba: " << this->name <<
-                       " byva na " << this->addr <<
-                       " s cislom uctu " << this->account <<
-                       " a na ucte ma prijem " << this->income <<
-                       " a na ucte ma odjem " << this->expense << std::endl;
-        }
-        bool operator == ( Person & other)  {
-          return ((this->get_name() == other.get_name() &&
-                  this->get_address() == other.get_address()) ||
-                  (this->get_account() == other.get_account()));
-        }
-        std::string get_name() const {
-          return this->name;
-        }
-        std::string get_account() const {
-          return this->account;
-        }
-        std:: string get_address() const { 
-          return this->addr;
-        }
-        int get_income() const{
-          return this->income;
-        }
-        int get_expense() const{
-          return this->expense;
-        }
-        void change_income(int amount) {
-          this->income += amount;
-          return;
-        }
-        void change_expense(int amount) {
-          this->expense += amount;
-          return;
-        }
-        void change_name_addr(std::string n, std::string add) {
-          this->name = n;
-          this->addr = add;
-          return;
-        }
-        void change_account (std::string acc) {
-          this->account = acc;
-          return;
-        }
-    
-};
 
 
 bool compare_name(const Person & a, const Person & b) {
@@ -260,7 +277,9 @@ class CTaxRegister
         person.print();
       }
     }
-    CIterator listByName () const;
+    CIterator listByName () const {
+      return CIterator(0, data_by_name);
+    }
 };
 
 #ifndef __PROGTEST__
@@ -313,7 +332,7 @@ int main ()
   assert ( acct == "Z343rwZ" );
   assert ( sumIncome == 0 );
   assert ( sumExpense == 500 );
-  /*
+  
   CIterator it = b0 . listByName ();
   assert ( ! it . atEnd ()
            && it . name () == "Jane Hacker"
@@ -336,7 +355,7 @@ int main ()
            && it . account () == "634oddT" );
   it . next ();
   assert ( it . atEnd () );
- */
+ 
   assert ( b0 . death ( "John Smith", "Main Street 17" ) );
   CTaxRegister b1;
   assert ( b1 . birth ( "John Smith", "Oak Road 23", "123/456/789" ) );
