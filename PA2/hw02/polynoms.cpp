@@ -29,98 +29,87 @@ std::ios_base & ( * poly_var ( const std::string & name ) ) ( std::ios_base & x 
 class CPolynomial
 { 
   public:
-    std::vector<double> coefficients;
+    mutable std::vector<double> coefficients;
     // default constructor
-    CPolynomial() {
-      this->coefficients.push_back(0);
+    CPolynomial(double x = 0) {
+      this->coefficients.push_back(x);
     }
 
-    CPolynomial operator * (CPolynomial & other) {
+    CPolynomial operator * (const CPolynomial & other) {
       CPolynomial result;
-      this->remove_zeros();
-      other.remove_zeros();
-      int total_length = this->coefficients.size() + other.coefficients.size() - 1;
+      int total_length = this->degree() + other.degree() + 1;
       result.coefficients.resize(total_length);
-      for (size_t i = 0; i < this->coefficients.size() ; i++) {
-        for (size_t j = 0; j < other.coefficients.size() ; j++) {
-          result.coefficients[i+j] += this->coefficients[i] *other.coefficients[j];
+      for (unsigned int i = 0; i < this->degree() ; i++) {
+        for (unsigned int j = 0; j < other.degree() ; j++) {
+          result.coefficients[i+j] += this->coefficients[i] * other.coefficients[j];
         }
       }
       return result;
     }
-    CPolynomial operator * (double multiple) {
+    CPolynomial operator * (const double multiple) {
       CPolynomial other;
-      other[0] = multiple;
+      other.coefficients[0] = multiple;
       return ((*this) * other);
     }
-    CPolynomial & operator *= (CPolynomial other) {
+    CPolynomial & operator *= (const CPolynomial & other) {
       (*this) = (*this) * other;
       return *this;
     }
-    CPolynomial & operator *= (double other) {
+    CPolynomial & operator *= (const double other) {
       (*this) = (*this) * other;
       return *this;
     }
-    bool operator == (CPolynomial other) {
-      this->remove_zeros();
-      other.remove_zeros();
-      if (this->coefficients.size() != other.coefficients.size()) return false;
-      for (size_t i = 0; i < this->coefficients.size() - 1; i++) {
+    bool operator == (CPolynomial other) const {
+      if (this->degree() != other.degree()) return false;
+      for (unsigned int i = 0; i < this->degree() - 1; i++) {
         //return abs(a-b) < 0.0001;
         if (!(abs(this->coefficients[i] - other.coefficients[i]) < 0.0001)) return false;
 
       }
       return true;
     }
-    bool operator != (CPolynomial other) {
+    bool operator != (const CPolynomial & other) const {
       return !((*this) == other);
     }
-    friend std::ostream & operator<<(std::ostream &os, CPolynomial & polynom) {
+    friend std::ostream & operator<<(std::ostream &os,const CPolynomial & polynom) {
       return polynom.print(os);
   }
-
-    double & operator [] (size_t index){
-      if (index >= this->coefficients.size()) this->coefficients.resize(index+1);
+    CPolynomial & operator = (const CPolynomial & other ) {
+      if (this != &other) {
+        this->coefficients = other.coefficients;
+      }
+      return *this;
+    }
+    double & operator [] (unsigned int index){
+      if (index >= this->degree()) this->coefficients.resize(index+1);
       return this->coefficients[index];
     }
-    double operator () (double x) {
-      this->remove_zeros();
+    double operator () (double x) const {
       double result = 0;
-      for (size_t i = 0; i < this->coefficients.size(); i++){
+      for (unsigned int i = 0; i < this->degree(); i++){
         result += this->coefficients[i] * pow(x, i);
       }
       return result;
     }
-    // operator !
-    explicit operator bool() {
-      this->remove_zeros();
-      if (this->coefficients.size() > 1) return true;
+    bool operator ! () const {
+      return !(static_cast<bool> (*this));
+    }
+    explicit operator bool() const {
+      if (this->degree() > 1) return true;
       else if (this->coefficients[0] != 0) return true;
       else return false;
     }
-    unsigned int degree (){
-      this->remove_zeros();
-      return this->coefficients.size() -1;
-    }
-    void remove_zeros() {
-      int index = this->coefficients.size()-1;
-      while (!(this->coefficients[index])) {
-        this->coefficients.pop_back();
-        index -= 1;
+    unsigned int degree () const{
+      for (int i = this->coefficients.size() - 1; i >= 0; i--) {
+        if (this->coefficients[i]) return i;
       }
-      this->coefficients.shrink_to_fit();
-      if (!this->coefficients.size()) this->coefficients.push_back(0);
-      return;
+      return 0;
     }
-  private:
-    
-
-
-    std::ostream & print(std::ostream & os) {
-      for (size_t i = this->coefficients.size()-1; i > 0; i--) {
+    std::ostream & print(std::ostream & os) const {
+      for (unsigned int i = this->degree()-1; i > 0; i--) {
         double value = this->coefficients[i];
         if (value > 0) {
-          if (i != (this->coefficients.size() - 1)) {
+          if (i != (this->degree() - 1)) {
             os << " + ";
           }
           if (value != 1) {
@@ -128,7 +117,7 @@ class CPolynomial
           }
           os << "x^" << i;
         } else if (value < 0) {
-          if (i != (this->coefficients.size() - 1)) {
+          if (i != (this->degree() - 1)) {
             os << " - ";
           } else {
             os << "- ";
@@ -141,7 +130,7 @@ class CPolynomial
       }
       if (this->coefficients[0] > 0 ) os << " + " << this->coefficients[0];
       else if (this->coefficients[0] < 0) os << " - " << this->coefficients[0] * -1.0;
-      else if (this->coefficients.size() == 1) os << "0";
+      else if (this->degree() == 1) os << "0";
       return os;
     }
     
@@ -158,7 +147,7 @@ bool smallDiff ( double a,
 bool dumpMatch ( const CPolynomial & x,
                  const std::vector<double> & ref )
 {
-  for (size_t i = 0; i < x.coefficients.size(); i++) {
+  for (unsigned int i = 0; i < x.degree(); i++) {
     if (!smallDiff(x.coefficients[i], ref[i])) return false;
   }
   return true;
@@ -166,7 +155,7 @@ bool dumpMatch ( const CPolynomial & x,
 
 int main ()
 {
-  std::cout << "yes its working" << std::endl;
+  //std::cout << "yes its working" << std::endl;
 
   CPolynomial a, b, c;
   std::ostringstream out, tmp;
@@ -179,14 +168,13 @@ int main ()
   a[6] = 0;
   a[7] = 0;
   assert ( smallDiff ( a ( 2 ), 5 ) );
-  a.remove_zeros();
   out . str ("");
   out << a;
-  std::cout << a << std::endl;
+  //std::cout << a << std::endl;
   assert ( out . str () == "x^3 + 3.5*x^1 - 10" );
 
   c = a * -2;
-  assert ( c . degree () == 3
+  assert ( c . degree() == 3
            && dumpMatch ( c, std::vector<double>{ 20.0, -7.0, -0.0, -2.0 } ) );
 
   out . str ("");
@@ -201,18 +189,18 @@ int main ()
   out << b;
   assert ( out . str () == "- x^5 + 3*x^2" );
   c = a * b;
-  assert ( c . degree () == 8
+  assert ( c . degree() == 8
            && dumpMatch ( c, std::vector<double>{ -0.0, -0.0, -30.0, 10.5, -0.0, 13.0, -3.5, 0.0, -1.0 } ) );
 
   out . str ("");
   out << c;
   assert ( out . str () == "- x^8 - 3.5*x^6 + 13*x^5 + 10.5*x^3 - 30*x^2" );
   a *= 5;
-  assert ( a . degree () == 3
+  assert ( a . degree() == 3
            && dumpMatch ( a, std::vector<double>{ -50.0, 17.5, 0.0, 5.0 } ) );
 
   a *= b;
-  assert ( a . degree () == 8
+  assert ( a . degree() == 8
            && dumpMatch ( a, std::vector<double>{ 0.0, 0.0, -150.0, 52.5, -0.0, 65.0, -17.5, -0.0, -5.0 } ) );
 
   assert ( a != b );
@@ -223,7 +211,7 @@ int main ()
   b[2] = 0;
   assert ( !(a == b) );
   a *= 0;
-  assert ( a . degree () == 0
+  assert ( a . degree() == 0
            && dumpMatch ( a, std::vector<double>{ 0.0 } ) );
 
   assert ( a == b );
