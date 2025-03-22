@@ -21,20 +21,31 @@
 #endif /* __PROGTEST__ */
 
 // keep this dummy version if you do not implement a real manipulator
+
 std::ios_base & ( * poly_var ( const std::string & name ) ) ( std::ios_base & x )
 {
   return [] ( std::ios_base & ios ) -> std::ios_base & { return ios; };
 }
 
+
+
 class CPolynomial
 { 
   public:
     mutable std::vector<double> coefficients;
+    std::string variable_name;
     // default constructor
-    CPolynomial() {
+    CPolynomial (std::string new_name = "x") {
       this->coefficients.push_back(0);
+      this->variable_name = new_name;
     }
-
+    std::ios_base& operator()(std::ios_base& os) const {
+      // If os is an output stream, insert the prefix into it
+      if (auto* out = dynamic_cast<std::ostream*>(&os)) {
+          *out << variable_name;
+      }
+      return os;
+    }
     CPolynomial operator * (const CPolynomial & other) const {
       CPolynomial result;
       this->remove_zeros();
@@ -226,7 +237,7 @@ int main ()
   assert ( a == b );
   assert ( ! static_cast<bool> ( b ) );
   assert ( ! b );
-  /*
+
   // bonus - manipulators
 
   out . str ("");
@@ -237,7 +248,7 @@ int main ()
   out . copyfmt ( tmp );
   out << c;
   assert ( out . str () == "- abc^8 - 3.5*abc^6 + 13*abc^5 + 10.5*abc^3 - 30*abc^2" );
-  */
+
   return EXIT_SUCCESS;
  }
 #endif /* __PROGTEST__ */
