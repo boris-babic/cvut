@@ -28,8 +28,8 @@ public:
     this->city = nullptr;
   }
   Adress( const char new_date [], const char * street, const char * city) {
-    this->city = strndup(city, strlen(city));
-    this->street = strndup(street, strlen(street));
+    this->city = strndup(city, strlen(city)+1);
+    this->street = strndup(street, strlen(street)+1);
     for (int i = 0; i < 12; i++) {
       this->date[i] = new_date[i];
     }
@@ -53,8 +53,8 @@ class Person {
   int ref_counter;
 
   Person(const char * name, const char * surname, const char id [],const  char date[],const char * street, const char * city) {
-    (*this).name = strndup(name, strlen(name));
-    (*this).surname = strndup(surname, strlen(surname));
+    (*this).name = strndup(name, strlen(name)+1);
+    (*this).surname = strndup(surname, strlen(surname)+1);
     for (int i = 0; i < 12; i++) {
       (*this).id[i] = id[i];
     }
@@ -65,8 +65,8 @@ class Person {
     ref_counter = 1;
   }
   Person(const Person & old) {
-    (*this).name = strndup(old.name, strlen(old.name));
-    (*this).surname = strndup(old.surname, strlen(old.surname));
+    (*this).name = strndup(old.name, strlen(old.name)+1);
+    (*this).surname = strndup(old.surname, strlen(old.surname)+1);
     for (int i = 0; i < 12; i++) {
       (*this).id[i] = old.id[i];
     }
@@ -144,7 +144,7 @@ class CRegister
   Person ** list_person;
   int      index;
   CRegister() {
-    size_person = 10;
+    size_person = 2;
     list_person = new Person * [size_person];
     index = 0;
   }
@@ -168,15 +168,15 @@ class CRegister
     return *this;
   }
   ~CRegister () {
-    std::cout << "deleting register---------------------------------------" << std::endl;
+    //std::cout << "deleting register---------------------------------------" << std::endl;
     for (int i = 0; i < index; i++) {
-      std::cout << "person at index " << i << " with id "<< this->list_person[i]->id <<  " with ref counter" << this->list_person[i]->ref_counter << std::endl;
+      //std::cout << "person at index " << i << " with id "<< this->list_person[i]->id <<  " with ref counter" << this->list_person[i]->ref_counter << std::endl;
       if (this->list_person[i]->ref_counter > 1) {
         //std::cout << "left person" << i <<std::endl;
         this->list_person[i]->ref_counter -= 1;
         this->list_person[i] = nullptr;
       } else  if (this->list_person[i]->ref_counter == 1) {
-        std::cout << "deleted person" << i << std::endl;
+        //std::cout << "deleted person" << i << std::endl;
         delete this->list_person[i];
       }
     }
@@ -193,6 +193,7 @@ class CRegister
                      const char     date[],
                      const char     street[],
                      const char     city[] ) {
+      if (id == nullptr || name == nullptr || surname == nullptr || date == nullptr || street == nullptr || city == nullptr) return false;
       Person * guy = new Person(name, surname, id, date, street, city);
       for (int i = 0; i < index; i++) {
           if (id_compare(this->list_person[i]->id, guy->id)){
@@ -208,6 +209,7 @@ class CRegister
                      const char     date[],
                      const char     street[],
                      const char     city[] ) {
+      if (id == nullptr || date == nullptr || street == nullptr || city == nullptr) return false;
       for (int i = 0; i < index; i++) {
           if (id_compare((*this->list_person[i]).id, id)){
             if (this->list_person[i]->ref_counter > 1) {
@@ -224,6 +226,7 @@ class CRegister
 
     bool print     ( std::ostream & os,
                      const char     id[] ) const {
+      if (id == nullptr) return false;
       for (int i = 0; i < this->index; i++) {
         if (!strcmp(this->list_person[i]->id, id)) {
           //os << "\"###(";
@@ -252,6 +255,8 @@ class CRegister
 
 
 #ifndef __PROGTEST__
+#include <random>
+
 int main ()
 {
   char   lID[12], lDate[12], lName[50], lSurname[50], lStreet[50], lCity[50];
