@@ -192,18 +192,11 @@ public:
     return;
   }
   void append(Person guy) {
-    int offset = 0;
     if(this->index >= size_person) {
       size_person = size_person * 2 + 1;
       Person * new_list = new Person[size_person];
       for (int i = 0; i < this->index; i++) {
-        if (strcmp(this->data[i].id, guy.id) > 0) {
-          new_list[i] = guy;
-          offset = 1;
-        }
-        new_list[i +offset] = this->data[i];
-      }
-      if (offset ==0) new_list[index] = guy;
+        new_list[i ] = this->data[i];
       delete [] this->data;
       this->data = new_list;
     }
