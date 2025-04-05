@@ -17,8 +17,8 @@
 int compare_ints(const int a, const int b)
 {
 
-    if (a < b) return -1;
-    if (a > b) return 1;
+    if (a < b) return 1;
+    if (a > b) return -1;
     return 0;
 }
 class CTimeStamp
@@ -64,8 +64,8 @@ public:
     }
     else if (this->second != x.second)
     {
-      return (1000 * (x.second - this->second));
-    }
+      return (1000 * (this->second - x.second));
+    }  
     else
       return 0;
   }
@@ -148,7 +148,7 @@ namespace MysteriousNamespace
   }
   static bool compare(const CMail &a, const CMail &b)
   {
-    return a.compareByTime(b) > 0;
+    return a.compareByTime(b) < 0;
   }
   
   class CMailLog
