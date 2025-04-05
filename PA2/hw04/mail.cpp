@@ -161,8 +161,6 @@ namespace MysteriousNamespace
       std::map<std::string, std::optional<std::string>> logs_subject;
       for (std::string line; std::getline(in, line, '\n');)
       {
-        if (line.length() < 27) continue;
-        else {
         try
         {
                   
@@ -199,10 +197,6 @@ namespace MysteriousNamespace
           continue;
         }
 
-      }
-        /*
-
-        */
       }
       return data.size();
     }
