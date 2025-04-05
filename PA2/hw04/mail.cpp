@@ -14,6 +14,13 @@
 #include <functional>
 #include <optional>
 
+int compare_ints(const int a, const int b)
+{
+
+    if (a < b) return -1;
+    if (a > b) return 1;
+    return 0;
+}
 class CTimeStamp
 {
 private:
@@ -32,35 +39,28 @@ public:
              int hour,
              int minute,
              double sec)
-  {
-    this->year = year;
-    this->month = month;
-    this->day = day;
-    this->hour = hour;
-    this->minute = minute;
-    this->second = sec;
-  }
+  : year(year), month(month), day(day), hour(hour), minute(minute), second(sec) {}
   int compare(const CTimeStamp &x) const
   {
     if (this->year != x.year)
     {
-      return (x.year - this->year);
+      return compare_ints(x.year, this->year);
     }
     else if (this->month != x.month)
     {
-      return (x.month - this->month);
+      return compare_ints(x.month, this->month);
     }
     else if (this->day != x.day)
     {
-      return (x.day - this->day);
+      return compare_ints(x.day, this->day);
     }
     else if (this->hour != x.hour)
     {
-      return (x.hour - this->hour);
+      return compare_ints(x.hour, this->hour);
     }
     else if (this->minute != x.minute)
     {
-      return (x.minute - this->minute);
+      return compare_ints(x.minute, this->minute);
     }
     else if (this->second != x.second)
     {
