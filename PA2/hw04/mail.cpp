@@ -209,16 +209,19 @@ namespace MysteriousNamespace
     std::list<CMail> listMail(const CTimeStamp &from,
                               const CTimeStamp &to) const
     {
-      CMail mailfrom(from, "fromit", "fromit", "fromit");
-      CMail mailto(to, "toit", "toit", "toit");
-      auto iter_from = std::lower_bound(data.begin(), data.end(), mailfrom, compare);
-      auto iter_to = std::upper_bound(data.begin(), data.end(), mailto, compare);
-      std::list<CMail> result;
-      for (auto it = iter_from; it != iter_to; ++it) {
-        result.push_back(*it);
-      }
-      return result;
+      CMail mailfrom(from, "dummy", "dummy", std::nullopt);
+    CMail mailto(to, "dummy", "dummy", std::nullopt);
+    
+    auto iter_from = std::lower_bound(data.begin(), data.end(), mailfrom, compare);
+    auto iter_to = std::upper_bound(data.begin(), data.end(), mailto, compare);
+
+    // Critical fix: Check if iterators are in valid order
+    if (iter_from >= iter_to) {
+        return {};
     }
+
+    return std::list<CMail>(iter_from, iter_to);
+}
 
     std::set<std::string> activeUsers(const CTimeStamp &from,
                                       const CTimeStamp &to) const
