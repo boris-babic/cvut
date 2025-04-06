@@ -157,46 +157,32 @@ namespace MysteriousNamespace
     int parseLog(std::istream &in)
     {
       std::map<std::string, std::string> logs_from;
-      std::map<std::string, std::string> logs_to;
       std::map<std::string, std::optional<std::string>> logs_subject;
+      std::string word;
+      std::string id;
       for (std::string line; std::getline(in, line, '\n');)
       {
-        try
-        {
-                  
-        std::string id = line.substr(line.find(':', 24) - 12, 12);
-        if (line.find("from=") != std::string::npos)
-        {
-          logs_from[id] = line.substr(line.find("from=") + 5);
+        std::vector<std::string> words;
+        std::istringstream iss(line);
+        while (iss >> word) {
+            words.push_back(word);
         }
-        else if (line.find("subject=") != std::string::npos)
-        {
-          logs_subject[id] = line.substr(line.find("subject=") + 8);
-        }
-        else if (line.find("to=") != std::string::npos)
-        {
-          logs_to[id] = line.substr(line.find("to=") + 3);
-          CTimeStamp newstamp(std::stoi(line.substr(7, 4)),
-                              get_month(line.substr(0, 3)),
-                              std::stoi(line.substr(4, 2)),
-                              std::stoi(line.substr(12, 2)),
-                              std::stoi(line.substr(15, 2)),
-                              std::stod(line.substr(18, 6)));
-          logs_subject.insert(std::pair<std::string, std::optional<std::string>>(id, std::nullopt));
+        if (words.size() <7) continue;
 
-          CMail newmail(newstamp,
-                        logs_from.at(id),
-                        logs_to.at(id),
-                        logs_subject.at(id));
-          auto iter = std::upper_bound(data.begin(), data.end(), newmail, compare);
-          data.insert(iter, newmail);
+          id = words[5];
+          if (words[6].starts_with("from=")) {
+            logs_from.insert({id, words[6].erase(0, 5)});
+          } else if (words[6].starts_with("subject=")) {
+            logs_subject.insert({id, join_words(words).erase(0, 8)});
+          } else if (words[6].starts_with("to=")) {
+            if (!logs_from.contains(id)) continue;
+            std::vector<std::string> stringstamp(words.begin(), words.begin()+4);
+            CTimeStamp newstamp = create_timestamp(stringstamp);
+            logs_subject.insert(std::pair<std::string, std::optional<std::string>>(id, std::nullopt));
+            CMail newmail(newstamp, logs_from[id], join_words(words).erase(0,3), logs_subject[id]);
+            auto iter = std::upper_bound(data.begin(), data.end(), newmail, compare);
+            data.insert(iter, newmail);
         }
-        }
-        catch(...)
-        {
-          continue;
-        }
-
       }
       return data.size();
     }
@@ -237,6 +223,25 @@ namespace MysteriousNamespace
 
   private:
     std::vector<CMail> data;
+    CTimeStamp create_timestamp(std::vector<std::string> & data) {
+      int month = get_month(data[0]);
+      int day = std::stoi(data[1]);
+      int year = std::stoi(data[2]);
+      int hour = std::stoi(data[3].substr(0,2));
+      int minute = std::stoi(data[3].substr(3,2));
+      double seconds = std::stod(data[3].substr(6 ,6));
+      CTimeStamp result(year, month, day, hour, minute, seconds);
+      return result;
+    }
+    std::string join_words(std::vector<std::string> data) {
+      std::string result;
+      for (size_t i = 6; i < data.size()-1; i++) {
+        result+= data[i];
+        result+= " ";
+      }
+      result += data[data.size()-1];
+      return result;
+    }
   };
 //----------------------------------------------------------------------------------------
 #ifndef __PROGTEST__
