@@ -17,9 +17,11 @@
 int compare_ints(const int a, const int b)
 {
 
-    if (a < b) return 1;
-    if (a > b) return -1;
-    return 0;
+  if (a < b)
+    return 1;
+  if (a > b)
+    return -1;
+  return 0;
 }
 class CTimeStamp
 {
@@ -39,7 +41,7 @@ public:
              int hour,
              int minute,
              double sec)
-  : year(year), month(month), day(day), hour(hour), minute(minute), second(sec) {}
+      : year(year), month(month), day(day), hour(hour), minute(minute), second(sec) {}
   int compare(const CTimeStamp &x) const
   {
     if (this->year != x.year)
@@ -65,7 +67,7 @@ public:
     else if (this->second != x.second)
     {
       return (1000 * (this->second - x.second));
-    }  
+    }
     else
       return 0;
   }
@@ -133,29 +135,13 @@ namespace MysteriousNamespace
 {
 #endif /* __PROGTEST__ */
   //----------------------------------------------------------------------------------------
-  int get_month(std::string name)
-  {
-    std::vector<std::string> months = {"Jan", "Feb", "Mar",
-                                       "Apr", "May", "Jun",
-                                       "Jul", "Aug", "Sep",
-                                       "Oct", "Nov", "Dec"};
-    for (int i = 0; i < 12; i++)
-    {
-      if (name == months[i])
-        return (i + 1);
-    }
-    return 13;
-  }
-  static bool compare(const CMail &a, const CMail &b)
-  {
-    return a.compareByTime(b) < 0;
-  }
-  
+
   class CMailLog
   {
   public:
     int parseLog(std::istream &in)
     {
+      int count = 0;
       std::map<std::string, std::string> logs_from;
       std::map<std::string, std::optional<std::string>> logs_subject;
       std::string word;
@@ -164,44 +150,52 @@ namespace MysteriousNamespace
       {
         std::vector<std::string> words;
         std::istringstream iss(line);
-        while (iss >> word) {
-            words.push_back(word);
+        while (iss >> word)
+        {
+          words.push_back(word);
         }
-        if (words.size() <7) continue;
+        if (words.size() < 7)
+          continue;
 
-          id = words[5];
-          if (words[6].starts_with("from=")) {
-            logs_from.insert({id, words[6].erase(0, 5)});
-          } else if (words[6].starts_with("subject=")) {
-            logs_subject.insert({id, join_words(words).erase(0, 8)});
-          } else if (words[6].starts_with("to=")) {
-            if (!logs_from.contains(id)) continue;
-            std::vector<std::string> stringstamp(words.begin(), words.begin()+4);
-            CTimeStamp newstamp = create_timestamp(stringstamp);
-            logs_subject.insert(std::pair<std::string, std::optional<std::string>>(id, std::nullopt));
-            CMail newmail(newstamp, logs_from[id], join_words(words).erase(0,3), logs_subject[id]);
-            auto iter = std::upper_bound(data.begin(), data.end(), newmail, compare);
-            data.insert(iter, newmail);
+        id = words[5];
+        if (words[6].starts_with("from="))
+        {
+          logs_from.insert({id, words[6].erase(0, 5)});
+        }
+        else if (words[6].starts_with("subject="))
+        {
+          logs_subject.insert({id, join_words(words).erase(0, 8)});
+        }
+        else if (words[6].starts_with("to="))
+        {
+          std::vector<std::string> stringstamp(words.begin(), words.begin() + 4);
+          CTimeStamp newstamp = create_timestamp(stringstamp);
+          logs_subject.insert(std::pair<std::string, std::optional<std::string>>(id, std::nullopt));
+          CMail newmail(newstamp, logs_from[id], join_words(words).erase(0, 3), logs_subject[id]);
+          auto iter = std::upper_bound(data.begin(), data.end(), newmail, compare);
+          data.insert(iter, newmail);
+          count++;
         }
       }
-      return data.size();
+      return count;
     }
     std::list<CMail> listMail(const CTimeStamp &from,
                               const CTimeStamp &to) const
     {
       CMail mailfrom(from, "dummy", "dummy", std::nullopt);
-    CMail mailto(to, "dummy", "dummy", std::nullopt);
-    
-    auto iter_from = std::lower_bound(data.begin(), data.end(), mailfrom, compare);
-    auto iter_to = std::upper_bound(data.begin(), data.end(), mailto, compare);
+      CMail mailto(to, "dummy", "dummy", std::nullopt);
 
-    // Critical fix: Check if iterators are in valid order
-    if (iter_from >= iter_to) {
+      auto iter_from = std::lower_bound(data.begin(), data.end(), mailfrom, compare);
+      auto iter_to = std::upper_bound(data.begin(), data.end(), mailto, compare);
+
+      // Critical fix: Check if iterators are in valid order
+      if (iter_from >= iter_to)
+      {
         return {};
-    }
+      }
 
-    return std::list<CMail>(iter_from, iter_to);
-}
+      return std::list<CMail>(iter_from, iter_to);
+    }
 
     std::set<std::string> activeUsers(const CTimeStamp &from,
                                       const CTimeStamp &to) const
@@ -223,24 +217,58 @@ namespace MysteriousNamespace
 
   private:
     std::vector<CMail> data;
-    CTimeStamp create_timestamp(std::vector<std::string> & data) {
-      int month = get_month(data[0]);
-      int day = std::stoi(data[1]);
-      int year = std::stoi(data[2]);
-      int hour = std::stoi(data[3].substr(0,2));
-      int minute = std::stoi(data[3].substr(3,2));
-      double seconds = std::stod(data[3].substr(6 ,6));
+    CTimeStamp create_timestamp(const std::vector<std::string> &stringstamp)
+    {
+      std::vector<std::string> tmp = split(stringstamp[3], ':');
+      int month = get_month(stringstamp[0]);
+      int day = std::stoi(stringstamp[1]);
+      int year = std::stoi(stringstamp[2]);
+      int hour = std::stoi(tmp[0]);
+      int minute = std::stoi(tmp[1]);
+      double seconds = std::stod(tmp[2]);
       CTimeStamp result(year, month, day, hour, minute, seconds);
       return result;
     }
-    std::string join_words(std::vector<std::string> data) {
+    std::string join_words(std::vector<std::string> data)
+    {
       std::string result;
-      for (size_t i = 6; i < data.size()-1; i++) {
-        result+= data[i];
-        result+= " ";
+      for (size_t i = 6; i < data.size() - 1; i++)
+      {
+        result += data[i];
+        result += " ";
       }
-      result += data[data.size()-1];
+      result += data[data.size() - 1];
       return result;
+    }
+    std::vector<std::string> split(const std::string &str, char delimiter)
+    {
+      std::vector<std::string> result;
+      std::string token;
+      std::stringstream ss(str);
+
+      while (std::getline(ss, token, delimiter))
+      {
+        result.push_back(token);
+      }
+
+      return result;
+    }
+    static bool compare(const CMail &a, const CMail &b)
+    {
+      return a.compareByTime(b) < 0;
+    }
+    int get_month(const std::string &name)
+    {
+      std::vector<std::string> months = {"Jan", "Feb", "Mar",
+                                         "Apr", "May", "Jun",
+                                         "Jul", "Aug", "Sep",
+                                         "Oct", "Nov", "Dec"};
+      for (int i = 0; i < 12; i++)
+      {
+        if (name == months[i])
+          return (i + 1);
+      }
+      return 13;
     }
   };
 //----------------------------------------------------------------------------------------
@@ -252,7 +280,7 @@ std::string printMail(const std::list<CMail> &all)
   std::ostringstream oss;
   for (const auto &mail : all)
   {
-    //std::cout << mail << std::endl;
+    // std::cout << mail << std::endl;
     oss << mail << "\n";
   }
   return oss.str();
