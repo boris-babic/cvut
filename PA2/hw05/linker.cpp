@@ -32,81 +32,87 @@ class CLinker
       loadObjectFile ( fileName );
       return *this;
     }
-    void linkOutput ( const std::string & fileName,
-                      const std::string & entryPoint )
+
+    void linkOutput ( const std::string & fileName, const std::string & entryPoint )
     {
       performLinking ( fileName, entryPoint );
     }
-    
+
   private:
     struct ExportEntry {
-      std::string name;
-      uint32_t    offset;
-      uint32_t    length;
+      std::string_view name;
+      uint32_t         offset;
+      uint32_t         length;
     };
 
     struct ImportEntry {
-      std::string           name;
+      std::string_view     name;
       std::vector<uint32_t> refOffsets;
     };
 
     struct ObjectFile {
-      std::string           fileName;
       std::vector<uint8_t>  codeBlock;
       std::vector<ExportEntry> exports;
       std::vector<ImportEntry> imports;
       uint32_t              codeSize;
     };
 
-    std::vector<ObjectFile> objectFiles;
-
     struct GlobalSymbol {
-      int      objIndex;
-      int      exportIndex;
+      uint32_t objIndex : 16;
+      uint32_t exportIndex : 15;
+      uint32_t placed : 1;
       uint32_t outAddr;
-      bool     placed;
     };
 
-    std::unordered_map<std::string, GlobalSymbol> symbolTable;
-    std::vector<std::string> linkedOrder;
+    std::vector<ObjectFile> objectFiles;
+    std::unordered_map<std::string_view, GlobalSymbol> symbolTable;
+    std::vector<std::string_view> linkedOrder;
+
+    // String interning
+    std::unordered_map<std::string, std::string> internPool;
+    const std::string_view intern ( const std::string & s )
+    {
+      auto [it, _] = internPool.emplace(s, s);
+      return std::string_view(it->first);
+    }
 
     void loadObjectFile ( const std::string & fileName )
     {
       ObjectFile obj;
-      obj.fileName = fileName;
       std::ifstream in ( fileName.c_str(), std::ios::binary );
-      if ( ! in )
-        throw std::runtime_error ( "Nepodarilo sa otvoriť súbor: " + fileName );
+      if ( ! in ) throw std::runtime_error ( "Nepodarilo sa otvoriť súbor: " + fileName );
+
       uint32_t numExports, numImports, codeSize;
       in.read ( (char *) &numExports, sizeof(uint32_t) );
       in.read ( (char *) &numImports, sizeof(uint32_t) );
       in.read ( (char *) &codeSize, sizeof(uint32_t) );
       obj.codeSize = codeSize;
-      
+
       for ( uint32_t i = 0; i < numExports; i++ )
       {
         ExportEntry exp;
         uint8_t nameLen;
-        in.read ( (char *) &nameLen, sizeof(uint8_t) );
         char buffer[256];
-        if ( nameLen > 0 )
-          in.read ( buffer, nameLen );
-        exp.name = std::string ( buffer, nameLen );
+        in.read ( (char *) &nameLen, sizeof(uint8_t) );
+        if ( nameLen > 0 ) in.read ( buffer, nameLen );
+        std::string temp ( buffer, nameLen );
+        exp.name = intern(temp);
         in.read ( (char *) &exp.offset, sizeof(uint32_t) );
         obj.exports.push_back ( exp );
       }
-      
+
       for ( uint32_t i = 0; i < numImports; i++ )
       {
         ImportEntry imp;
         uint8_t nameLen;
-        in.read ( (char *) &nameLen, sizeof(uint8_t) );
         char buffer[256];
-        if ( nameLen > 0 )
-          in.read ( buffer, nameLen );
-        imp.name = std::string ( buffer, nameLen );
+        in.read ( (char *) &nameLen, sizeof(uint8_t) );
+        if ( nameLen > 0 ) in.read ( buffer, nameLen );
+        std::string temp ( buffer, nameLen );
+        imp.name = intern(temp);
         uint32_t numRefs;
         in.read ( (char *) &numRefs, sizeof(uint32_t) );
+        imp.refOffsets.reserve(numRefs);
         for ( uint32_t j = 0; j < numRefs; j++ )
         {
           uint32_t ref;
@@ -115,118 +121,120 @@ class CLinker
         }
         obj.imports.push_back ( imp );
       }
-      
+
       obj.codeBlock.resize ( codeSize );
-      in.read ( (char *) (obj.codeBlock.data()), codeSize );
-      if ( ! in )
-        throw std::runtime_error ( "Chyba pri čítaní súboru: " + fileName );
-      
+      in.read ( (char *) obj.codeBlock.data(), codeSize );
+      if ( ! in ) throw std::runtime_error ( "Chyba pri čítaní súboru: " + fileName );
+
       std::vector<ExportEntry> sorted = obj.exports;
       std::sort ( sorted.begin(), sorted.end(),
-                  [] ( const ExportEntry & a, const ExportEntry & b )
-                  { return a.offset < b.offset; } );
+                  [] ( const ExportEntry & a, const ExportEntry & b ) {
+                    return a.offset < b.offset;
+                  } );
       for ( size_t i = 0; i < sorted.size(); i++ )
       {
         uint32_t start = sorted[i].offset;
         uint32_t end = ( i + 1 < sorted.size() ) ? sorted[i+1].offset : obj.codeSize;
         uint32_t len = end - start;
         for ( auto & e : obj.exports )
-          if ( e.name == sorted[i].name && e.offset == start )
-          {
+          if ( e.name == sorted[i].name && e.offset == start ) {
             e.length = len;
             break;
           }
       }
-      
+
       for ( size_t i = 0; i < obj.exports.size(); i++ )
       {
         const ExportEntry & exp = obj.exports[i];
         if ( symbolTable.find ( exp.name ) != symbolTable.end() )
-          throw std::runtime_error ( "Duplicita symbolu: " + exp.name );
+          throw std::runtime_error ( "Duplicita symbolu: " + std::string(exp.name) );
         GlobalSymbol gs;
         gs.objIndex = objectFiles.size();
         gs.exportIndex = i;
         gs.outAddr = 0;
-        gs.placed  = false;
+        gs.placed = false;
         symbolTable[ exp.name ] = gs;
       }
-      
-      objectFiles.push_back ( obj );
+
+      obj.codeBlock.shrink_to_fit();
+      obj.exports.shrink_to_fit();
+      obj.imports.shrink_to_fit();
+      objectFiles.push_back ( std::move(obj) );
     }
-    
+
     void resolveDependencies ( const std::string & symbol )
     {
       auto it = symbolTable.find ( symbol );
       if ( it == symbolTable.end() )
         throw std::runtime_error ( "Symbol " + symbol + " nebol nájdený." );
-      if ( it->second.placed )
-        return;
+      if ( it->second.placed ) return;
       it->second.placed = true;
-      linkedOrder.push_back ( symbol );
-      int objIndex = it->second.objIndex;
-      int expIndex = it->second.exportIndex;
-      ObjectFile & obj = objectFiles[ objIndex ];
-      ExportEntry & exp = obj.exports[ expIndex ];
+      linkedOrder.push_back ( it->first );
+
+      const ObjectFile & obj = objectFiles[it->second.objIndex];
+      const ExportEntry & exp = obj.exports[it->second.exportIndex];
       uint32_t start = exp.offset;
-      uint32_t end = exp.offset + exp.length;
+      uint32_t end = start + exp.length;
+
       for ( const auto & imp : obj.imports )
         for ( uint32_t ref : imp.refOffsets )
           if ( ref >= start && ref < end )
-            resolveDependencies ( imp.name );
+            resolveDependencies ( std::string(imp.name) );
     }
-    
-    void performLinking ( const std::string & outFileName,
-                          const std::string & entryPoint )
+
+    void performLinking ( const std::string & outFileName, const std::string & entryPoint )
     {
       if ( symbolTable.find ( entryPoint ) == symbolTable.end() )
         throw std::runtime_error ( "Entry point symbol " + entryPoint + " neexistuje." );
+
       linkedOrder.clear();
+      linkedOrder.reserve(1024); // reasonable default
       resolveDependencies ( entryPoint );
-      
+
       std::vector<uint8_t> output;
-      std::unordered_map<std::string, uint32_t> symOut;
+      std::map<std::string_view, uint32_t> symOut;
+
       for ( const auto & sym : linkedOrder )
       {
-        GlobalSymbol & gs = symbolTable[ sym ];
-        ObjectFile & obj = objectFiles[ gs.objIndex ];
-        ExportEntry & exp = obj.exports[ gs.exportIndex ];
-        gs.outAddr = static_cast<uint32_t>( output.size() );
-        symOut[ sym ] = gs.outAddr;
+        GlobalSymbol & gs = symbolTable[sym];
+        const ObjectFile & obj = objectFiles[ gs.objIndex ];
+        const ExportEntry & exp = obj.exports[ gs.exportIndex ];
+        gs.outAddr = output.size();
+        symOut[sym] = gs.outAddr;
+
         if ( exp.offset + exp.length > obj.codeSize )
-          throw std::runtime_error ( "Chybné exportovanie pre symbol " + sym );
+          throw std::runtime_error ( "Chybné exportovanie pre symbol " + std::string(sym) );
+
         output.insert ( output.end(),
                         obj.codeBlock.begin() + exp.offset,
                         obj.codeBlock.begin() + exp.offset + exp.length );
       }
-      
+
       for ( const auto & sym : linkedOrder )
       {
-        GlobalSymbol & gs = symbolTable[ sym ];
-        ObjectFile & obj = objectFiles[ gs.objIndex ];
-        ExportEntry & exp = obj.exports[ gs.exportIndex ];
+        GlobalSymbol & gs = symbolTable[sym];
+        const ObjectFile & obj = objectFiles[ gs.objIndex ];
+        const ExportEntry & exp = obj.exports[ gs.exportIndex ];
         uint32_t start = exp.offset;
         uint32_t end = exp.offset + exp.length;
         for ( const auto & imp : obj.imports )
           for ( uint32_t ref : imp.refOffsets )
             if ( ref >= start && ref < end )
             {
-              uint32_t rel = ref - start;
-              size_t pos = gs.outAddr + rel;
+              size_t pos = gs.outAddr + (ref - start);
               if ( pos + sizeof(uint32_t) > output.size() )
-                throw std::runtime_error ( "Nesprávny offset pri patchovaní symbolu " + sym );
+                throw std::runtime_error ( "Nesprávny offset pri patchovaní symbolu " + std::string(sym) );
               if ( symOut.find ( imp.name ) == symOut.end() )
-                throw std::runtime_error ( "Nezaradený import: " + imp.name );
+                throw std::runtime_error ( "Nezaradený import: " + std::string(imp.name) );
               uint32_t addr = symOut[ imp.name ];
-              std::memcpy ( &output[ pos ], (char *) &addr, sizeof(uint32_t) );
+              std::memcpy ( &output[pos], &addr, sizeof(uint32_t) );
             }
-      
-      std::ofstream out ( outFileName.c_str(), std::ios::binary );
-      if ( ! out )
-        throw std::runtime_error ( "Nepodarilo sa otvoriť výstupný súbor: " + outFileName );
-      out.write ( (char *) output.data(), output.size() );
-      if ( ! out )
-        throw std::runtime_error ( "Chyba pri zápise do súboru: " + outFileName );
       }
+
+      std::ofstream out ( outFileName.c_str(), std::ios::binary );
+      if ( ! out ) throw std::runtime_error ( "Nepodarilo sa otvoriť výstupný súbor: " + outFileName );
+      out.write ( (char *) output.data(), output.size() );
+      if ( ! out ) throw std::runtime_error ( "Chyba pri zápise do súboru: " + outFileName );
     }
 };
 #ifndef __PROGTEST__
