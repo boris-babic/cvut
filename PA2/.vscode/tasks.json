@@ -7,6 +7,10 @@
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
+                "-Wall",
+                "-pedantic",
+                "-Werror",
+                "-std=c++20",
                 "${file}",
                 "-o",
                 "${fileDirname}/${fileBasenameNoExtension}"
