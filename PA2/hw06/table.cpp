@@ -100,20 +100,20 @@ class CText : public CCell {
     std::vector<std::string> result;
     if (this->alignment == ALIGN_RIGHT) {
       for (auto line : this->text) {
-        //os << std::setfill('*') << std::setw(width) << std::right << line << std::endl;
-        std::string padding_left(external_width - line.length(), '*');
+        //os << std::setfill(' ') << std::setw(width) << std::right << line << std::endl;
+        std::string padding_left(external_width - line.length(), ' ');
         result.push_back( padding_left + line);
       }
     } else {
       for (auto line : this->text) {
-        //os << std::setfill('*') << std::setw(width) << std::left << line << std::endl;
-        std::string padding_right(external_width - line.length(), '*');
+        //os << std::setfill(' ') << std::setw(width) << std::left << line << std::endl;
+        std::string padding_right(external_width - line.length(), ' ');
         result.push_back( line + padding_right);
       }
     }
-    for (int i = this->text.size(); i < height; i++) {
-      //os << std::setfill('*') << std::setw(width) << "*" << std::endl;
-      result.push_back(std::string(external_width, '*'));
+    for (int i = this->text.size(); i < external_height; i++) {
+      //os << std::setfill(' ') << std::setw(width) << "*" << std::endl;
+      result.push_back(std::string(external_width, ' '));
     }
   return result;
   }
@@ -144,9 +144,8 @@ class CEmpty : public CCell {
   }
   virtual std::vector<std::string> print( int external_width, int external_height) override {
     std::vector<std::string> result;
-    result.resize(external_height);
-    for (auto i : result) {
-      i += std::string(external_width, '*');
+    for (int i = 0; i < external_height; i++) {
+      result.push_back(std::string(external_width, ' '));
     }
     return result;
   }
@@ -178,16 +177,16 @@ class CImage : public CCell {
     int padding_width_left = (external_width - this->width)/2;
     int padding_width_right = external_width - this->width - padding_width_left;
     for (int i = 0; i < padding_height_up; i++) {
-      //os << std::setfill('*') << std::setw(external_width)<< "" << std::endl;
-      result.push_back(std::string(external_width, '*'));
+      //os << std::setfill(' ') << std::setw(external_width)<< "" << std::endl;
+      result.push_back(std::string(external_width, ' '));
     }
     for (auto row : image) {
-      //os << std::string(padding_width_left, '*') << row << std::string(padding_width_right, '*') << std::endl;
-      result.push_back(std::string(padding_width_left, '*') + row + std::string(padding_width_right, '*'));
+      //os << std::string(padding_width_left, ' ') << row << std::string(padding_width_right, ' ') << std::endl;
+      result.push_back(std::string(padding_width_left, ' ') + row + std::string(padding_width_right, ' '));
     }
     for (int i = 0; i < padding_height_down; i++) {
-      //os << std::setfill('*') << std::setw(external_width)<< "" << std::endl;
-      result.push_back(std::string(external_width, '*'));
+      //os << std::setfill(' ') << std::setw(external_width)<< "" << std::endl;
+      result.push_back(std::string(external_width, ' '));
     }
     return result;
   }
