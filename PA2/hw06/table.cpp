@@ -30,10 +30,6 @@ class CCell {
  public:
   CCell() = default;
   virtual ~CCell() = default;
-
-  virtual void testeros() {
-    std::cout << "zavolal som ccell test" << std::endl;
-  }
   virtual std::vector<std::string> print(int external_width,
                                          int external_height) = 0;
   virtual bool operator==(const CCell& other) const = 0;
@@ -89,29 +85,21 @@ class CText : public CCell {
     setsize();
     return;
   }
-  void testeros() override {
-    std::cout << "zavolal som ctext test" << std::endl;
-  }
   virtual std::vector<std::string> print(int external_width,
                                          int external_height) override {
     std::vector<std::string> result;
     if (this->alignment == ALIGN_RIGHT) {
       for (auto line : this->text) {
-        // os << std::setfill(' ') << std::setw(width) << std::right << line <<
-        // std::endl;
         std::string padding_left(external_width - line.length(), ' ');
         result.push_back(padding_left + line);
       }
     } else {
       for (auto line : this->text) {
-        // os << std::setfill(' ') << std::setw(width) << std::left << line <<
-        // std::endl;
         std::string padding_right(external_width - line.length(), ' ');
         result.push_back(line + padding_right);
       }
     }
     for (int i = this->text.size(); i < external_height; i++) {
-      // os << std::setfill(' ') << std::setw(width) << "*" << std::endl;
       result.push_back(std::string(external_width, ' '));
     }
     return result;
@@ -135,9 +123,6 @@ class CEmpty : public CCell {
   CEmpty() {
     this->width = 0;
     this->height = 0;
-  }
-  void testeros() override {
-    std::cout << "zavolal som cempty test" << std::endl;
   }
   virtual std::vector<std::string> print(int external_width,
                                          int external_height) override {
@@ -177,17 +162,13 @@ class CImage : public CCell {
     int padding_width_left = (external_width - this->width) / 2;
     int padding_width_right = external_width - this->width - padding_width_left;
     for (int i = 0; i < padding_height_up; i++) {
-      // os << std::setfill(' ') << std::setw(external_width)<< "" << std::endl;
       result.push_back(std::string(external_width, ' '));
     }
     for (auto row : image) {
-      // os << std::string(padding_width_left, ' ') << row <<
-      // std::string(padding_width_right, ' ') << std::endl;
       result.push_back(std::string(padding_width_left, ' ') + row +
                        std::string(padding_width_right, ' '));
     }
     for (int i = 0; i < padding_height_down; i++) {
-      // os << std::setfill(' ') << std::setw(external_width)<< "" << std::endl;
       result.push_back(std::string(external_width, ' '));
     }
     return result;
@@ -280,7 +261,7 @@ class CTable : public CCell {
   virtual std::vector<std::string> print(int external_width,
                                          int external_height) override {
     std::vector<std::string> result = this->get_resulting_table();
-    for (size_t i = 0; i < result.size(); i++ ) {
+    for (size_t i = 0; i < result.size(); i++) {
       result[i] += std::string(external_width - result[i].length(), ' ');
     }
     int filled_rows = result.size();
@@ -288,7 +269,7 @@ class CTable : public CCell {
       result.push_back(std::string(external_width, ' '));
     }
     return result;
-  } 
+  }
 
   friend std::ostream& operator<<(std::ostream& os, const CTable& table) {
     std::vector<std::string> result = table.get_resulting_table();
@@ -340,7 +321,8 @@ class CTable : public CCell {
     if (other_cell) {
       for (int row = 0; row < this->rows; row++) {
         for (int column = 0; column < this->columns; column++) {
-          if (*(this->table[row][column].get()) != *(other_cell->table[row][column].get())) {
+          if (*(this->table[row][column].get()) !=
+              *(other_cell->table[row][column].get())) {
             return false;
           }
         }
@@ -350,22 +332,22 @@ class CTable : public CCell {
       return false;
     }
   }
-  virtual bool operator!= (const CCell& other) const override {
+  virtual bool operator!=(const CCell& other) const override {
     return !(*this == other);
   }
   virtual int getwidth() const override {
     int result = 0;
-    for (auto i: this->get_column_widths()) {
+    for (auto i : this->get_column_widths()) {
       result += i;
     }
-    return (result+this->columns+1);
+    return (result + this->columns + 1);
   }
   virtual int getheight() const override {
     int result = 0;
-    for (auto i: this->get_row_heights()) {
-      result+= i;
+    for (auto i : this->get_row_heights()) {
+      result += i;
     }
-    return (result+this->rows+1);
+    return (result + this->rows + 1);
   }
 
  private:
@@ -376,7 +358,7 @@ class CTable : public CCell {
     std::vector<int> result;
     result.resize(this->columns, 0);
     for (int row = 0; row < this->rows; row++) {
-      for(int column = 0; column < this->columns; column++) {
+      for (int column = 0; column < this->columns; column++) {
         if ((*this->table[row][column].get()).getwidth() > result[column]) {
           result[column] = (*this->table[row][column].get()).getwidth();
         }
@@ -388,7 +370,7 @@ class CTable : public CCell {
     std::vector<int> result;
     result.resize(this->rows, 0);
     for (int row = 0; row < this->rows; row++) {
-      for(int column = 0; column < this->columns; column++) {
+      for (int column = 0; column < this->columns; column++) {
         if ((*this->table[row][column].get()).getheight() > result[row]) {
           result[row] = (*this->table[row][column].get()).getheight();
         }
