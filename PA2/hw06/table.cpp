@@ -41,8 +41,8 @@ class CCell {
     return !(*this == other);
   };
 
-  int getwidth() const { return this->width; }
-  int getheight() const { return this->height; }
+  virtual int getwidth() const { return this->width; }
+  virtual int getheight() const { return this->height; }
   virtual std::unique_ptr<CCell> clone() const = 0;
 
  protected:
@@ -274,16 +274,21 @@ class CTable : public CCell {
 
   template <typename celltype>
   void setCell(int row, int column, const celltype& newcontent) {
-    if (*(this->table[row][column].get()) == newcontent) return;
-    this->table[row][column].reset();
     this->table[row][column] = newcontent.clone();
     return;
   }
   virtual std::vector<std::string> print(int external_width,
                                          int external_height) override {
-    std::vector<std::string> result{};
+    std::vector<std::string> result = this->get_resulting_table();
+    for (size_t i = 0; i < result.size(); i++ ) {
+      result[i] += std::string(external_width - result[i].length(), ' ');
+    }
+    int filled_rows = result.size();
+    for (int i = 0; i < external_height - filled_rows; i++) {
+      result.push_back(std::string(external_width, ' '));
+    }
     return result;
-  }
+  } 
 
   friend std::ostream& operator<<(std::ostream& os, const CTable& table) {
     std::vector<std::string> result = table.get_resulting_table();
@@ -295,27 +300,12 @@ class CTable : public CCell {
   std::vector<std::string> get_resulting_table() const {
     std::vector<std::string> result;
 
-    std::vector<int> max_column_width;
-    max_column_width.resize(this->columns, 0);
-    std::vector<int> max_row_height;
-    max_row_height.resize(this->rows, 0);
+    std::vector<int> max_column_width = this->get_column_widths();
+    std::vector<int> max_row_height = this->get_row_heights();
 
-    for (int row = 0; row < this->rows; row++) {
-      for (int column = 0; column < this->columns; column++) {
-        if ((*this->table[row][column].get()).getheight() >
-            max_row_height[row]) {
-          max_row_height[row] = this->table[row][column].get()->getheight();
-        }
-        if ((*this->table[row][column].get()).getwidth() >
-            max_column_width[column]) {
-          max_column_width[column] = this->table[row][column].get()->getwidth();
-        }
-      }
-    }
-    int total_rows = 0;
-    for (auto i : max_row_height) total_rows += i;
-    total_rows += rows + 1;
+    int total_rows = this->getheight();
     result.resize(total_rows);
+
     std::string line_divider{'+'};
     for (int i = 0; i < this->columns; i++) {
       line_divider += std::string(max_column_width[i], '-');
@@ -348,9 +338,6 @@ class CTable : public CCell {
   virtual bool operator==(const CCell& other) const override {
     const CTable* other_cell = dynamic_cast<const CTable*>(&other);
     if (other_cell) {
-      if (this->rows != other_cell->rows ||
-          this->columns != other_cell->columns)
-        return false;
       for (int row = 0; row < this->rows; row++) {
         for (int column = 0; column < this->columns; column++) {
           if (this->table[row][column] != other_cell->table[row][column]) {
@@ -363,10 +350,52 @@ class CTable : public CCell {
       return false;
     }
   }
+  virtual bool operator!= (const CCell& other) const override {
+    return !(*this == other);
+  }
+  virtual int getwidth() const override {
+    int result = 0;
+    for (auto i: this->get_column_widths()) {
+      result += i;
+    }
+    return (result+this->columns+1);
+  }
+  virtual int getheight() const override {
+    int result = 0;
+    for (auto i: this->get_row_heights()) {
+      result+= i;
+    }
+    return (result+this->rows+1);
+  }
 
  private:
   std::vector<std::vector<std::unique_ptr<CCell>>> table;
   CEmpty dummy{};
+
+  std::vector<int> get_column_widths() const {
+    std::vector<int> result;
+    result.resize(this->columns, 0);
+    for (int row = 0; row < this->rows; row++) {
+      for(int column = 0; column < this->columns; column++) {
+        if ((*this->table[row][column].get()).getwidth() > result[column]) {
+          result[column] = (*this->table[row][column].get()).getwidth();
+        }
+      }
+    }
+    return result;
+  }
+  std::vector<int> get_row_heights() const {
+    std::vector<int> result;
+    result.resize(this->rows, 0);
+    for (int row = 0; row < this->rows; row++) {
+      for(int column = 0; column < this->columns; column++) {
+        if ((*this->table[row][column].get()).getheight() > result[row]) {
+          result[row] = (*this->table[row][column].get()).getheight();
+        }
+      }
+    }
+    return result;
+  }
   int rows;
   int columns;
 };
@@ -399,6 +428,7 @@ int extra_tests ()
           . addRow ( " #   #         #  #   " )
           . addRow ( "  ##  ###   ###    ## " ) );
   t0 . setCell ( 2, 1, CEmpty () );
+  t0 . setCell (0, 0, t0.getCell(0,0));
   oss . str ("");
   oss . clear ();
   oss << t0;
@@ -776,6 +806,7 @@ int extra_tests ()
   t1 . setCell ( 0, 0, t1 );
   oss . str ("");
   oss . clear ();
+  std::cout << t1;
   oss << t1;
   assert ( oss . str () ==
         "+-------------------------------------------------------------------------------------------+------------------------------------------+\n"
@@ -962,7 +993,7 @@ int extra_tests ()
   return EXIT_SUCCESS;
 }
 int main() {
-  //extra_tests();
+  extra_tests();
   std::ostringstream oss;
   CTable t0 ( 3, 2 );
   t0 . setCell ( 0, 0, CText ( "Hello,\n"
