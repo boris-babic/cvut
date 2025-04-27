@@ -340,7 +340,7 @@ class CTable : public CCell {
     if (other_cell) {
       for (int row = 0; row < this->rows; row++) {
         for (int column = 0; column < this->columns; column++) {
-          if (this->table[row][column] != other_cell->table[row][column]) {
+          if (*(this->table[row][column].get()) != *(other_cell->table[row][column].get())) {
             return false;
           }
         }
