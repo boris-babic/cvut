@@ -17,34 +17,40 @@
 #include <memory>
 #include <compare>
 #include <complex>
-class CArray
- {
-   public:
-    CArray ( int len )
-     {
-       m_D = new int[ m_L = len ];
-       for ( int i = 0; i < m_L; i ++ ) m_D[i] = 0;
-     }  
-    CArray & operator = ( const CArray src )
-     {
-       delete [] m_D;  
-       m_D = new int[ m_L = src . m_L ];
-       for ( int i = 0; i < m_L; i ++ ) m_D[i] = src . m_D[i];
-       return *this;
-     } 
-    ~CArray ( void ) { delete [] m_D; }
-    int & operator [] ( int i ) { return m_D[i]; }
-   private:   
-    int * m_D;
-    int   m_L;
- };
+
+
+using namespace std;
+class A
+{
+  public:
+    A ( int x = 88 ) : m_X ( new int ( x ) ) { }
+    A ( const A & src ) : m_X ( new int ( *src . m_X ) ) { }
+    virtual ~A ( void ) { delete m_X; }
+    virtual void print ( void ) const { cout << *m_X; }
+  private: 
+    int *m_X;
+};
+
+class B : public A
+{
+  public:
+    B ( int x, int y ) : A ( x ), m_Y ( new int ( y ) ) { }
+    B ( const B & src ) : m_Y ( new int ( *src.m_Y ) ) { }   
+    virtual ~B ( void ) { delete m_Y; }
+    virtual void print ( void ) const { A::print (); cout << *m_Y; }
+  private: 
+    int *m_Y;
+};
+
+void foo ( const B val )
+{
+  val . print ( );
+}
 
 int main ( void )
- {
-   CArray a(51), b(12);
+{
+  B test ( 34, 87 );
 
-   b = a;
-   a[12] = 71;   
-   std::cout << b[12];
-   return 0;
- }
+  foo ( test );
+  return 0;
+}
