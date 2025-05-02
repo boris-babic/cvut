@@ -27,11 +27,15 @@ class CText;
 class CImage;
 
 class CCell {
+  // base class for all the cells the table can have-CEmpty, CImage, CText and
+  // CTable
  public:
   CCell() = default;
   virtual ~CCell() = default;
   virtual std::vector<std::string> print(int external_width,
-                                         int external_height) = 0;
+                                         int external_height) const = 0;
+  // print creates vector of strings with padding for easier printing in the
+  // future
   virtual bool operator==(const CCell& other) const = 0;
   virtual bool operator!=(const CCell& other) const {
     return !(*this == other);
@@ -40,6 +44,7 @@ class CCell {
   virtual int getwidth() const { return this->width; }
   virtual int getheight() const { return this->height; }
   virtual std::unique_ptr<CCell> clone() const = 0;
+  // clone creates a deep copy of the instance
 
  protected:
   int width;
@@ -48,9 +53,11 @@ class CCell {
 
 class CText : public CCell {
  private:
+  // text is stored inside a vector for easier manipulation during printing
   std::vector<std::string> text;
 
   void setsize() {
+    // calculates the width the text will span in the table
     size_t max = 0;
     this->height = this->text.size();
     for (auto i : this->text) {
@@ -86,20 +93,23 @@ class CText : public CCell {
     return;
   }
   virtual std::vector<std::string> print(int external_width,
-                                         int external_height) override {
+                                         int external_height) const override {
     std::vector<std::string> result;
     if (this->alignment == ALIGN_RIGHT) {
+      // adds padding to the left of the text
       for (auto line : this->text) {
         std::string padding_left(external_width - line.length(), ' ');
         result.push_back(padding_left + line);
       }
     } else {
+      // adds padding to the right of the text
       for (auto line : this->text) {
         std::string padding_right(external_width - line.length(), ' ');
         result.push_back(line + padding_right);
       }
     }
     for (int i = this->text.size(); i < external_height; i++) {
+      // adds empty lines to fill the vector to its external height
       result.push_back(std::string(external_width, ' '));
     }
     return result;
@@ -109,6 +119,8 @@ class CText : public CCell {
   }
   virtual bool operator==(const CCell& other) const override {
     const CText* other_cell = dynamic_cast<const CText*>(&other);
+    // checks if other_cell is nullptr. If so, other has different type so its
+    // not equal
     if (other_cell) {
       return (this->text == other_cell->text &&
               this->alignment == other_cell->alignment);
@@ -125,7 +137,7 @@ class CEmpty : public CCell {
     this->height = 0;
   }
   virtual std::vector<std::string> print(int external_width,
-                                         int external_height) override {
+                                         int external_height) const override {
     std::vector<std::string> result;
     for (int i = 0; i < external_height; i++) {
       result.push_back(std::string(external_width, ' '));
@@ -153,8 +165,10 @@ class CImage : public CCell {
     return *this;
   }
   virtual std::vector<std::string> print(int external_width,
-                                         int external_height) override {
+                                         int external_height) const override {
     std::vector<std::string> result;
+    // image has to be centered inside the cell
+    // and therefore we need to add padding to all 4 sides
     int padding_height_up = (external_height - this->height) / 2;
     int padding_height_down =
         external_height - this->height - padding_height_up;
@@ -162,13 +176,16 @@ class CImage : public CCell {
     int padding_width_left = (external_width - this->width) / 2;
     int padding_width_right = external_width - this->width - padding_width_left;
     for (int i = 0; i < padding_height_up; i++) {
+      // adds padding from the top
       result.push_back(std::string(external_width, ' '));
     }
     for (auto row : image) {
+      // adds the image and padding from left and right
       result.push_back(std::string(padding_width_left, ' ') + row +
                        std::string(padding_width_right, ' '));
     }
     for (int i = 0; i < padding_height_down; i++) {
+      // adds padding from the bottom
       result.push_back(std::string(external_width, ' '));
     }
     return result;
@@ -246,6 +263,7 @@ class CTable : public CCell {
   }
 
   CCell& getCell(int row, int column) {
+    // returns a reference to the cell with the given position
     if (row < this->rows && column < this->columns) {
       return *(this->table[row][column]);
     } else {
@@ -253,19 +271,21 @@ class CTable : public CCell {
     }
   }
 
-  template <typename celltype>
-  void setCell(int row, int column, const celltype& newcontent) {
+  void setCell(int row, int column, const CCell& newcontent) {
+    // puts a deep copy of newcontent into the table at given position
     this->table[row][column] = newcontent.clone();
     return;
   }
   virtual std::vector<std::string> print(int external_width,
-                                         int external_height) override {
+                                         int external_height) const override {
     std::vector<std::string> result = this->get_resulting_table();
     for (size_t i = 0; i < result.size(); i++) {
+      // adds padding from the right
       result[i] += std::string(external_width - result[i].length(), ' ');
     }
     int filled_rows = result.size();
     for (int i = 0; i < external_height - filled_rows; i++) {
+      // adds padding from the bottom
       result.push_back(std::string(external_width, ' '));
     }
     return result;
@@ -279,28 +299,32 @@ class CTable : public CCell {
     return os;
   }
   std::vector<std::string> get_resulting_table() const {
+    // renders the table for printing
     std::vector<std::string> result;
 
-    std::vector<int> max_column_width = this->get_column_widths();
-    std::vector<int> max_row_height = this->get_row_heights();
+    // these vectors store how wide/tall is each row/column of cells
+    const std::vector<int> max_column_width = this->get_column_widths();
+    const std::vector<int> max_row_height = this->get_row_heights();
 
     int total_rows = this->getheight();
     result.resize(total_rows);
 
-    std::string line_divider{'+'};
-    for (int i = 0; i < this->columns; i++) {
-      line_divider += std::string(max_column_width[i], '-');
-      line_divider += '+';
-    }
+    // creates a string that will sit between 2 neighbouring rows
+    std::string line_divider =
+        get_line_divider(this->columns, max_column_width);
 
-    int cell_index = 0;
+    int cell_index =
+        0;  // stores the index where should the first line of the cell be added
     result[cell_index++] = line_divider;
+
+    // iterates through all the cells
     for (int row = 0; row < this->rows; row++) {
       for (int column = 0; column < this->columns; column++) {
         std::vector<std::string> current_cell =
             this->table[row][column].get()->print(max_column_width[column],
                                                   max_row_height[row]);
-        for (int current_line_index = 0;
+        for (int current_line_index = 0;  // current_line_index stores the
+                                          // current position inside 1 cell
              current_line_index < max_row_height[row]; current_line_index++) {
           if (column == 0) result[cell_index + current_line_index] += '|';
           result[cell_index + current_line_index] +=
@@ -308,8 +332,8 @@ class CTable : public CCell {
           result[cell_index + current_line_index] += '|';
         }
       }
-      cell_index += max_row_height[row];
-      result[cell_index++] = line_divider;
+      cell_index += max_row_height[row];    // increments it for new row of cell
+      result[cell_index++] = line_divider;  // adds line_divider
     }
     return result;
   }
@@ -352,9 +376,13 @@ class CTable : public CCell {
 
  private:
   std::vector<std::vector<std::unique_ptr<CCell>>> table;
-  CEmpty dummy{};
+  CEmpty dummy{};  // for invalid coordinates in method getCell
+  int rows;
+  int columns;
 
   std::vector<int> get_column_widths() const {
+    // returns vector with values at each index
+    // corresponding to the width of the column of that index
     std::vector<int> result;
     result.resize(this->columns, 0);
     for (int row = 0; row < this->rows; row++) {
@@ -367,6 +395,8 @@ class CTable : public CCell {
     return result;
   }
   std::vector<int> get_row_heights() const {
+    // returns vector with values at each index
+    // corresponding to the height of the row of that index
     std::vector<int> result;
     result.resize(this->rows, 0);
     for (int row = 0; row < this->rows; row++) {
@@ -378,8 +408,17 @@ class CTable : public CCell {
     }
     return result;
   }
-  int rows;
-  int columns;
+
+  static std::string get_line_divider(int columns,
+                                      const std::vector<int>& width_vector) {
+    // creates the separator for 2 neighbouring rows
+    std::string result{'+'};
+    for (int i = 0; i < columns; i++) {
+      result += std::string(width_vector[i], '-');
+      result += '+';
+    }
+    return result;
+  }
 };
 
 #ifndef __PROGTEST__
