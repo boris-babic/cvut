@@ -37,35 +37,121 @@ class CDumbString
 };
 #endif /* __PROGTEST__ */
 
-template <typename T_>
+template <typename T>
 class CNet
 {
   public:
     // default constructor
     // add ( x, y, cost )
+    CNet & add(const T & x, const T & y, int cost) {
+      int x_index = get_node_index(x);
+      int y_index = get_node_index(y);
+      this->edges[x_index][y_index] = cost;
+      this->edges[y_index][x_index] = cost;
+
+      return *this;
+    }
     // optimize ()
-    // totalCost ( x, y )
+    CNet & optimize() {
+      for (size_t i = 0; i < nodes.size(); i++) {
+        //std::cout <<"----------------starting with node:" << i << std::endl;
+        this->get_total_cost(i);
+        /*
+        std::cout <<"----------------ending with node:" << i << std::endl;
+        for (auto i : this->cost_table) {
+          for (auto j : i) {
+            if (j == INT32_MAX) std::cout << "n ";
+            else std::cout << j <<" ";
+          }
+          std::cout << std::endl;
+        }
+        */
+      }
+      return *this;
+    }
+    int totalCost(T x, T y) {
+      if (std::find(nodes.begin(), nodes.end(), x) == nodes.end() || std::find(nodes.begin(), nodes.end(), y) == nodes.end()){
+        return -1;
+      }
+      int x_index = get_node_index(x);
+      int y_index = get_node_index(y);
+      if (this->cost_table[x_index][y_index] == INT32_MAX) return -1;
+      else return this->cost_table[x_index][y_index];
+    }
   private:
-    // todo
+    std::vector<T> nodes;
+    std::vector<std::vector<int>> edges;
+    std::vector<std::vector<int>> cost_table;
+    int get_node_index(const T & x) {
+      for (size_t i = 0; i < nodes.size(); i++){
+        if (nodes[i] == x) return i;
+      }
+      nodes.push_back(x);
+      this->resize_tables();
+      return nodes.size()-1;
+    }
+
+    void get_total_cost(int start) {
+      size_t number_of_nodes = nodes.size();
+      std::vector<int> result;
+      result.resize(number_of_nodes, INT32_MAX);
+      std::set<int> visited;
+      result[start] = 0;
+
+
+      while (visited.size() < number_of_nodes) {
+        int current_node = get_minimum(result, visited);
+        visited.emplace(current_node);
+        std::vector<int> edges_from_current = this->edges[current_node];
+        for (size_t i = 0; i < edges_from_current.size(); i++) {
+          if (edges_from_current[i] > 0 && edges_from_current[i]+result[current_node] < result[i]) {
+            result[i] = edges_from_current[i]+result[current_node];
+          }
+        }
+      }
+      this->cost_table[start] = result;
+      return;
+    }
+
+    static int get_minimum(std::vector<int> data, std::set<int> visited) {
+      int minvalue = INT32_MAX;
+      int index = 0;
+      for (size_t i = 1; i < data.size(); i++) {
+        if (data[i] < minvalue && std::find(visited.begin(), visited.end(), i) == visited.end()) {
+          minvalue = data[i];
+          index = i;
+        }
+      }
+      return index;
+    }
+    void resize_tables() {
+      int number_of_nodes = nodes.size();
+      this->edges.resize(number_of_nodes);
+      this->cost_table.resize(number_of_nodes);
+      for (int i = 0; i < number_of_nodes; i++) {
+        this->edges[i].resize(number_of_nodes, -1);
+        this->cost_table[i].resize(number_of_nodes, INT32_MAX);
+      }
+      return;
+    }
 };
 
 #ifndef __PROGTEST__
 int main ()
 {
-
   CNet<std::string> a;
   a . add ( "Adam", "Bob", 100 )
-    . add ( "Bob", "Carol", 200 )
-    . add ( "Dave", "Adam", 300 )
-    . add ( "Eve", "Fiona", 120 )
-    . add ( "Kate", "Larry", 270 )
-    . add ( "Ivan", "John", 70 )
-    . add ( "Kate", "Ivan", 300 )
-    . add ( "George", "Henry", 10 )
-    . add ( "Eve", "George", 42 )
-    . add ( "Adam", "Eve", 75 )
-    . add ( "Ivan", "George", 38 )
-    . optimize ();
+  . add ( "Bob", "Carol", 200 )
+  . add ( "Dave", "Adam", 300 )
+  . add ( "Eve", "Fiona", 120 )
+  . add ( "Kate", "Larry", 270 )
+  . add ( "Ivan", "John", 70 )
+  . add ( "Kate", "Ivan", 300 )
+  . add ( "George", "Henry", 10 )
+  . add ( "Eve", "George", 42 )
+  . add ( "Adam", "Eve", 75 )
+  . add ( "Ivan", "George", 38 )
+  . optimize ();
   assert ( a . totalCost ( "Adam", "Bob" ) == 100 );
   assert ( a . totalCost ( "John", "Eve" ) == 150 );
   assert ( a . totalCost ( "Dave", "Henry" ) == 427 );
@@ -73,20 +159,20 @@ int main ()
   assert ( a . totalCost ( "George", "George" ) == 0 );
   assert ( a . totalCost ( "Alice", "Bob" ) == -1 );
   assert ( a . totalCost ( "Thomas", "Thomas" ) == -1 );
-
+  
   CNet<int> b;
   b . add ( 0, 1, 100 )
-    . add ( 1, 2, 200 )
-    . add ( 3, 0, 300 )
-    . add ( 4, 5, 120 )
-    . add ( 10, 11, 270 )
-    . add ( 8, 9, 70 )
-    . add ( 10, 8, 300 )
-    . add ( 6, 7, 10 )
-    . add ( 4, 6, 42 )
-    . add ( 0, 4, 75 )
-    . add ( 8, 6, 38 )
-    . optimize ();
+  . add ( 1, 2, 200 )
+  . add ( 3, 0, 300 )
+  . add ( 4, 5, 120 )
+  . add ( 10, 11, 270 )
+  . add ( 8, 9, 70 )
+  . add ( 10, 8, 300 )
+  . add ( 6, 7, 10 )
+  . add ( 4, 6, 42 )
+  . add ( 0, 4, 75 )
+  . add ( 8, 6, 38 )
+  . optimize ();
   assert ( b . totalCost ( 0, 1 ) == 100 );
   assert ( b . totalCost ( 9, 4 ) == 150 );
   assert ( b . totalCost ( 3, 7 ) == 427 );
@@ -94,20 +180,20 @@ int main ()
   assert ( b . totalCost ( 6, 6 ) == 0 );
   assert ( b . totalCost ( 0, 1 ) == 100 );
   assert ( b . totalCost ( 19, 19 ) == -1 );
-
+  
   CNet<CDumbString> c;
   c . add ( "Adam"s, "Bob"s, 100 )
-    . add ( "Bob"s, "Carol"s, 200 )
-    . add ( "Dave"s, "Adam"s, 300 )
-    . add ( "Eve"s, "Fiona"s, 120 )
-    . add ( "Kate"s, "Larry"s, 270 )
-    . add ( "Ivan"s, "John"s, 70 )
-    . add ( "Kate"s, "Ivan"s, 300 )
-    . add ( "George"s, "Henry"s, 10 )
-    . add ( "Eve"s, "George"s, 42 )
-    . add ( "Adam"s, "Eve"s, 75 )
-    . add ( "Ivan"s, "George"s, 38 )
-    . optimize ();
+  . add ( "Bob"s, "Carol"s, 200 )
+  . add ( "Dave"s, "Adam"s, 300 )
+  . add ( "Eve"s, "Fiona"s, 120 )
+  . add ( "Kate"s, "Larry"s, 270 )
+  . add ( "Ivan"s, "John"s, 70 )
+  . add ( "Kate"s, "Ivan"s, 300 )
+  . add ( "George"s, "Henry"s, 10 )
+  . add ( "Eve"s, "George"s, 42 )
+  . add ( "Adam"s, "Eve"s, 75 )
+  . add ( "Ivan"s, "George"s, 38 )
+  . optimize ();
   assert ( c . totalCost ( "Adam"s, "Bob"s ) == 100 );
   assert ( c . totalCost ( "John"s, "Eve"s ) == 150 );
   assert ( c . totalCost ( "Dave"s, "Henry"s ) == 427 );
@@ -115,7 +201,7 @@ int main ()
   assert ( c . totalCost ( "George"s, "George"s ) == 0 );
   assert ( c . totalCost ( "Alice"s, "Bob"s ) == -1 );
   assert ( c . totalCost ( "Thomas"s, "Thomas"s ) == -1 );
-
+  
   return EXIT_SUCCESS;
 }
 #endif /* __PROGTEST__ */
