@@ -207,12 +207,13 @@ struct Node_State {
   Node_State() : node(0), has_treasure(false), inventory() {}
   RoomId node;
   bool has_treasure = false;
-  int distance = 0;
+  bool in_stealth = false;
   std::array<my_item, 3> inventory = {};
   struct Hash {
     size_t operator()(const Node_State& s) const {
       size_t h = std::hash<RoomId>{}(s.node);
       h = h * 31 + std::hash<bool>{}(s.has_treasure);
+      h = h * 31 + std::hash<bool>{}(s.in_stealth);
       for (const auto& item : s.inventory) {
         h = h * 31 + std::hash<Item::Type>{}(item.type);
         if (item.type != Item::TYPE_COUNT) {
@@ -224,23 +225,20 @@ struct Node_State {
   };
   void print() const {
     std::cout << "RoomId: " << this->node
-              << " has treasure: " << (has_treasure ? "1" : "0") << "distance: " << distance << std::endl;
+              << " has treasure: " << (has_treasure ? "1" : "0") << std::endl;
     for (int i = 0; i < 3; i++) {
       this->inventory[i].print();
     }
   }
   auto operator<=>(const Node_State& other) const noexcept = default;
   bool operator==(const Node_State& other) const {
-    return node == other.node && has_treasure == other.has_treasure &&
+    return node == other.node && 
+           has_treasure == other.has_treasure &&
+           in_stealth == other.in_stealth &&
            inventory == other.inventory;
-  }
+}
 };
 
-struct CompareNodeState {
-    bool operator()(const Node_State& a, const Node_State& b) const {
-        return a.distance > b.distance;
-    }
-};
 
 
 void printAction(const Action& a) {
@@ -284,13 +282,13 @@ std::vector<Action> create_action_vector(
   // std::cout << "zacinam vyrabat result" << std::endl;
   //previous_action_printer(map);
   while (current != first) {
-    current.print();
+    //current.print();
     const auto& action = map.at(current).second;
     if (!(std::holds_alternative<Drop>(action) && std::get<Drop>(action).type == Item::TYPE_COUNT)) {
       result.push_back(action);
-      printAction(action);
+      //printAction(action);
     } else {
-      std::cout << "picked up treasure" << std::endl;
+      //std::cout << "picked up treasure" << std::endl;
     }
     current = map.at(current).first;
   }
@@ -333,237 +331,87 @@ std::vector<Action> find_shortest_path(const std::vector<Room>& rooms,
                                        RoomId treasure) {
   std::vector<Action> result;
   Player human;
-  std::priority_queue<Node_State, std::vector<Node_State>, CompareNodeState> to_visit;
+  std::deque<Node_State> to_visit;
   std::unordered_map<Node_State, std::pair<Node_State, Action>, Node_State::Hash> previous_action;
   bool found_path = false;
-  bool printing = true;
   Node_State first_room;
   first_room.node = rooms.size();
   // std::cout << "zacinam bfs" << std::endl;
   for (auto i : entrances) {
     Node_State current_inserting;
     current_inserting.node = i;
-    previous_action[current_inserting] = std::make_pair(first_room, Move(i));
-    to_visit.push(current_inserting);
+    human.inventory = current_inserting.inventory;
+    if (!rooms[i].monster.has_value() || check_if_monster_defeatable(human ,rooms[i].monster.value())) {
+        current_inserting.in_stealth = false;
+        if (treasure == current_inserting.node) {
+          result.push_back(Move(i));
+          return result;
+        }
+        if (!previous_action.contains(current_inserting)) {
+          previous_action[current_inserting] = std::make_pair(first_room,  Move(i));
+          to_visit.push_back(current_inserting);
+        }
+    }
   }
   Node_State current_node_state;
+  Node_State next_node;
   /// std::cout << "zacinam while loop" << std::endl;
   while (to_visit.size() > 0) {
     // nacitam terajsi node
-    current_node_state = to_visit.top();
-    to_visit.pop();
-    //current_node_state.print();
-    // skontrolujem ci som tu uz nebol
-    human.inventory = current_node_state.inventory;
-    // testujem ci idem fightit
-    if (!rooms[current_node_state.node].monster.has_value() || check_if_monster_defeatable( human, rooms[current_node_state.node].monster.value())) {  // ci ho mozem fightit
-      // std::cout << "zabil som priseru" << std::endl;
-      if (current_node_state.node == treasure) {
-        // std::cout << "nasiel som poklad" << std::endl;
-        Node_State previous = current_node_state;
-        current_node_state.has_treasure = true;
-        if (previous_action.find(current_node_state) == previous_action.end()) {
-          previous_action[current_node_state] = std::make_pair(previous, Drop(Item::TYPE_COUNT));
-          if (printing) {
-            std::cout << "-------------------------------------------------------" << std::endl;
-            previous.print();
-            std::cout << "picked up treasure" << std::endl;
-            current_node_state.print();
-            std::cout << "-------------------------------------------------------" << std::endl;
-          }
+    current_node_state = to_visit.front();
+    to_visit.pop_front();
+    if (current_node_state.has_treasure && (std::find(entrances.begin(), entrances.end(), current_node_state.node) != entrances.end())) {
+      found_path = true;
+      break;
+    }
+    //dropy
+    for (int i = 0; i < 3; i++) {
+      if (current_node_state.inventory[i] != my_item()) {
+        next_node = current_node_state;
+        next_node.inventory[i] = my_item();
+        if (!previous_action.contains(next_node)) {
+          previous_action[next_node] = std::make_pair(current_node_state,  Drop{static_cast<Item::Type>(i)});
+          to_visit.push_front(next_node);
+        }
+      } 
+    }
+    //picky
+    if (!current_node_state.in_stealth) {
+      if (treasure == current_node_state.node) {
+        next_node = current_node_state;
+        next_node.has_treasure = true;
+        if (!previous_action.contains(next_node)) {
+          previous_action[next_node] = std::make_pair(current_node_state, Drop(Item::TYPE_COUNT));
+          to_visit.push_front(next_node);
         }
       }
-      if (current_node_state.has_treasure == true &&
-          std::find(entrances.begin(), entrances.end(),
-                    current_node_state.node) != entrances.end()) {
-        // std::cout << "nasiel som cestu" << std::endl;
-        found_path = true;
-        break;
-      }
-      // std::cout << "vyrabam vector itemov" << std::endl;
-      std::vector<std::vector<my_item>> weapons_available = get_weapons_available(human.inventory, rooms[current_node_state.node].items);
-      Node_State new_state;
-      Node_State previous_state;
-      for (const auto & neighbour_id : rooms[current_node_state.node].neighbors) {
-        for (size_t weapon_index = 0; weapon_index < weapons_available[0].size(); weapon_index++) {  // weapon
-          for (size_t armor_index = 0; armor_index < weapons_available[1].size(); armor_index++) {  // armor
-            for (size_t duck_index = 0; duck_index < weapons_available[2].size(); duck_index++) {  // duck
-              new_state = current_node_state;
-              new_state.node = neighbour_id;
-              previous_state = new_state;
-
-
-              if ((weapon_index == 0) && (new_state.inventory[0] != my_item())) { // idem dropovat weapon
-                new_state.inventory[0] = my_item();
-                if (!previous_action.contains(new_state)) {
-                  new_state.node = current_node_state.node;
-                  previous_action[new_state] = std::make_pair(previous_state, Drop(Item::Weapon));
-                  if (printing) {
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                    previous_state.print();
-                    std::cout << "dropped weapon" << std::endl;
-                    new_state.print();
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                  }
-                }
-              } else if ((weapon_index != 0) && (new_state.inventory[0] != weapons_available[0][weapon_index])) {// idem pickovat weapon
-                new_state.inventory[0] = weapons_available[0][weapon_index];
-                if (!previous_action.contains(new_state)) {
-                  new_state.node = current_node_state.node;
-                  previous_action[new_state] = std::make_pair(previous_state, Pickup(new_state.inventory[0].index));
-                  if (printing) {
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                    previous_state.print();
-                    std::cout << "picked weapon" << std::endl;
-                    new_state.print();
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                  }
-                }
-              } else {
-                continue;
-              }
-              
-              previous_state = new_state;
-              if ((armor_index == 0) && (new_state.inventory[1] != my_item())) { // idem dropovat armor
-                new_state.inventory[1] = my_item();
-                if (!previous_action.contains(new_state)) {
-                  previous_action[new_state] = std::make_pair(previous_state, Drop(Item::Armor));
-                  if (printing) {
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                    previous_state.print();
-                    std::cout << "dropped armor" << std::endl;
-                    new_state.print();
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                  }
-                } 
-              } else if ((armor_index != 0) && (new_state.inventory[1] != weapons_available[1][armor_index])) { // idem pickovat armor
-                new_state.inventory[1] = weapons_available[1][armor_index];
-
-                if (!previous_action.contains(new_state)) {
-                  previous_action[new_state] = std::make_pair(previous_state, Pickup(new_state.inventory[1].index));
-                  if (printing) {
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                    previous_state.print();
-                    std::cout << "picked armor" << std::endl;
-                    new_state.print();
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                  }
-                }
-              } else {
-                continue;
-              }
-              previous_state = new_state;
-              if ((duck_index == 0) && (new_state.inventory[2] != my_item())) { // idem dropovat duck
-                new_state.inventory[2] = my_item();
-                if (!previous_action.contains(new_state)) {
-                  previous_action[new_state] = std::make_pair(previous_state, Drop(Item::RubberDuck));
-                  if (printing) {
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                    previous_state.print();
-                    std::cout << "dropped duck" << std::endl;
-                    new_state.print();
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                  }
-                }
-              } else if ((duck_index != 0) && (current_node_state.inventory[2] != weapons_available[2][duck_index])) { // idem pickovat duck
-                new_state.inventory[2] = weapons_available[2][duck_index];
-
-                if (!previous_action.contains(new_state)) {
-                  previous_action[new_state] = std::make_pair(previous_state, Pickup(new_state.inventory[2].index));
-                  if (printing) {
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                    previous_state.print();
-                    std::cout << "picked duck" << std::endl;
-                    new_state.print();
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                  }
-
-                }
-              } else {
-                continue;
-              }
-              previous_state = new_state;
-              new_state.node = neighbour_id;
-              new_state.distance += 1;
-              if (!previous_action.contains(new_state)) {
-                previous_action[new_state] = std::make_pair(previous_state, Move(neighbour_id));
-                to_visit.push(new_state);
-                if (printing) {
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                    previous_state.print();
-                    std::cout << "moved2 to " << neighbour_id << std::endl;
-                    new_state.print();
-                    std::cout << "-------------------------------------------------------" << std::endl;
-                  }
-              }
-            }
-          }
+      for (size_t i = 0; i < rooms[current_node_state.node].items.size(); i++) {
+        next_node = current_node_state;
+        next_node.inventory[rooms[current_node_state.node].items[i].type] = rooms[current_node_state.node].items[i];
+        if (!previous_action.contains(next_node)) {
+          previous_action[next_node] = std::make_pair(current_node_state,  Pickup(i));
+          to_visit.push_front(next_node);
         }
       }
-    } else if (human.has_stealth()) {  // mozem stealthnut okolo
-      if (current_node_state.has_treasure == true &&
-          std::find(entrances.begin(), entrances.end(),
-                    current_node_state.node) != entrances.end()) {
-        // std::cout << "nasiel som cestu" << std::endl;
-        found_path = true;
-        break;
-      }
-      // tu vlozim vsetkych neighbours s terajsim inventarom alebo dropnutym
-      // inventarom
-      // std::cout << "stealthujem okolo" << std::endl;
-      Node_State working_state;
-      Node_State previous_state;
-      for (const auto& i : rooms[current_node_state.node].neighbors) {
-        // nedropnem nic
-        working_state = current_node_state;
-        previous_state = working_state;
-        working_state.node = i;
-        working_state.distance += 1;
-        if (!previous_action.contains(working_state)) {
-          previous_action[working_state] = std::make_pair(previous_state, Move(i));
-          to_visit.push(working_state);
+    }
+    //movy
+    for (auto i : rooms[current_node_state.node].neighbors) {
+      next_node = current_node_state;
+      next_node.node = i;
+      human.inventory = next_node.inventory;
+      if (!rooms[i].monster.has_value() || check_if_monster_defeatable(human ,rooms[i].monster.value())) {
+        next_node.in_stealth = false;
+        if (!previous_action.contains(next_node)) {
+          previous_action[next_node] = std::make_pair(current_node_state,  Move(i));
+          to_visit.push_back(next_node);
         }
-        for (int w = 0; w < 2; w++) {
-          for (int a = 0; a < 2; a++) {
-            for (int d = 0; d < 2; d++) {
-              working_state = current_node_state;
-              previous_state = working_state;
-              if ((w == 0) && (working_state.inventory[0] != my_item())) {
-                working_state.inventory[0] = my_item();
-                if (!previous_action.contains(working_state)) {
-                  previous_action[working_state] = std::make_pair(previous_state, Drop(Item::Weapon));
-                  
-                }
-              }
-              previous_state = working_state;
-              if ((a == 0) && (working_state.inventory[1] != my_item())) {
-                working_state.inventory[1] = my_item();
-                if (!previous_action.contains(working_state)) {
-                  previous_action[working_state] = std::make_pair(previous_state, Drop(Item::Armor));
-                  
-                }
-              }
-              previous_state = working_state;
-              if ((d == 0) && (working_state.inventory[2] != my_item())) {
-                working_state.inventory[2] = my_item();
-                if (!previous_action.contains(working_state)) {
-                  previous_action[working_state] = std::make_pair(previous_state, Drop(Item::RubberDuck));
-                  
-                }
-              }
-              previous_state = working_state;
-              working_state.node = i;
-              working_state.distance += 1;
-              if (!previous_action.contains(working_state)) {
-                previous_action[working_state] = std::make_pair(previous_state, Move(i));
-                to_visit.push(working_state);
-              }
-            }
-          }
+      } else if (human.has_stealth()) {
+        next_node.in_stealth = true;
+        if (!previous_action.contains(next_node)) {
+            previous_action[next_node] = std::make_pair(current_node_state,  Move(i));
+            to_visit.push_back(next_node);
         }
       }
-    } else {
-      continue;  // nemam tu co robit lebo by som prehral
     }
   }
 
@@ -594,7 +442,7 @@ bool contains(const auto& vec, const auto& x) {
   } while (0)
 void check_solution(const std::vector<Room>& rooms,
                     const std::vector<RoomId>& entrances, RoomId treasure,
-                    size_t expected_rooms, bool print = true) {
+                    size_t expected_rooms, bool print = false) {
   // TODO check if hero survives combat
   // TODO check if treasure was collected
 
